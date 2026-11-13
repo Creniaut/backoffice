@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "./App";
+import { AppToaster } from "./components/AppToaster";
 import { system } from "./theme";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <App />
+            <AppToaster />
           </BrowserRouter>
         </QueryClientProvider>
       </ThemeProvider>
