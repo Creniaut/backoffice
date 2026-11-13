@@ -86,9 +86,11 @@ async function eventCount(ticketId) {
 async function run() {
   await client.query("begin");
 
-  const member = await one("select email from members order by email limit 1");
-  assert(member, "Aucun membre : insère d'abord les membres dans members");
-  const memberEmail = member.email;
+  const memberEmail = "membre-check@example.com";
+  await client.query(
+    "insert into members (email, name, initials) values ($1, 'Membre test', 'MT')",
+    [memberEmail],
+  );
 
   const seeded = await one(
     "insert into tickets (project_slug, title) values ('notia', 'check-db') returning id",
@@ -137,16 +139,17 @@ async function run() {
     "insert into storage.objects (bucket_id, name) values ('ticket-images', 'intrus/x.png')",
   );
   const intruderUpdate = await client.query(
-    "update tickets set title = 'intrus' where id = ",
+    "update tickets set title = 'intrus' where id = $1",
     [seeded.id],
   );
   assert(
     intruderUpdate.rowCount === 0,
     "un compte hors liste modifie un ticket",
   );
-  const intruderDelete = await client.query("delete from tickets where id = ", [
-    seeded.id,
-  ]);
+  const intruderDelete = await client.query(
+    "delete from tickets where id = $1",
+    [seeded.id],
+  );
   assert(
     intruderDelete.rowCount === 0,
     "un compte hors liste supprime un ticket",
