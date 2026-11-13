@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau du back-office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout : barre du haut, en-tête avec filtres projet, 4 colonnes Kanban, volet de détail à droite. */
+:root {
+  --bg: oklch(0.975 0.004 250);
+  --lane: oklch(0.948 0.007 250);
+  --card: oklch(1 0 0);
+  --ink: oklch(0.25 0.02 255);
+  --muted: oklch(0.53 0.015 255);
+  --line: oklch(0.9 0.008 250);
+  --accent: oklch(0.43 0.11 252);
+  --accent-soft: oklch(0.93 0.03 252);
+  --claude: oklch(0.6 0.13 45);
+  --p-notia: oklch(0.55 0.12 202);
+  --p-bo: oklch(0.62 0.13 75);
+  --s-idea: oklch(0.7 0.01 255);
+  --s-todo: oklch(0.6 0.12 252);
+  --s-doing: oklch(0.72 0.14 75);
+  --s-done: oklch(0.62 0.12 150);
+  --shadow: 0 1px 2px oklch(0.25 0.02 255 / 0.07), 0 2px 8px oklch(0.25 0.02 255 / 0.05);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(0.2 0.012 255);
+    --lane: oklch(0.235 0.013 255);
+    --card: oklch(0.285 0.014 255);
+    --ink: oklch(0.94 0.008 250);
+    --muted: oklch(0.7 0.015 255);
+    --line: oklch(0.34 0.014 255);
+    --accent: oklch(0.74 0.1 252);
+    --accent-soft: oklch(0.32 0.04 252);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: oklch(0.2 0.012 255);
+  --lane: oklch(0.235 0.013 255);
+  --card: oklch(0.285 0.014 255);
+  --ink: oklch(0.94 0.008 250);
+  --muted: oklch(0.7 0.015 255);
+  --line: oklch(0.34 0.014 255);
+  --accent: oklch(0.74 0.1 252);
+  --accent-soft: oklch(0.32 0.04 252);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 14px/1.45 var(--font-body);
+  display: flex;
+  flex-direction: column;
+}
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.note {
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 13px;
+  padding: 8px 20px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.mark {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: var(--ink); color: var(--bg);
+  display: grid; place-items: center;
+  font: 700 14px/1 var(--font-display);
+}
+.brand b { font: 600 15px/1 var(--font-display); }
+.brand span { color: var(--muted); }
+.nav { display: flex; gap: 4px; }
+.nav a {
+  color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; font-weight: 500;
+}
+.nav a[aria-current="page"] { color: var(--ink); background: var(--lane); }
+.people { margin-left: auto; display: flex; }
+.people .av + .av { margin-left: -6px; }
+
+.av {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+  border: 2px solid var(--card);
+  flex: none;
+}
+.av.CB { background: oklch(0.86 0.06 252); color: oklch(0.3 0.08 252); }
+.av.EC { background: oklch(0.87 0.07 150); color: oklch(0.3 0.07 150); }
+.av.none { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); }
+
+.head {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 12px 24px;
+  padding: 20px 20px 14px;
+}
+.head h1 { font: 700 26px/1.1 var(--font-display); margin: 0; text-wrap: balance; }
+.head .sub { color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.url { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; color: var(--muted); }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--card);
+  padding: 5px 11px; border-radius: 999px; cursor: pointer; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip .n { color: var(--muted); }
+.chip[aria-pressed="true"] .n { color: inherit; opacity: 0.7; }
+.new {
+  margin-left: auto;
+  background: var(--accent); color: var(--bg);
+  border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer;
+}
+
+.work { flex: 1; min-height: 0; display: flex; }
+.board {
+  flex: 1; min-width: 0;
+  display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 12px;
+  padding: 0 20px 20px; overflow-x: auto; align-items: start;
+}
+.lane {
+  background: var(--lane); border-radius: 12px; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px; min-height: 160px;
+  border: 1.5px solid transparent; transition: border-color .12s;
+}
+.lane.over { border-color: var(--accent); }
+.lane header { display: flex; align-items: center; gap: 8px; padding: 2px 4px 4px; }
+.lane h2 { font: 600 14px/1 var(--font-display); margin: 0; }
+.lane .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lane .add {
+  margin-left: auto; border: 0; background: transparent; color: var(--muted);
+  width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1;
+}
+.lane .add:hover { background: var(--card); color: var(--ink); }
+.sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+.card {
+  background: var(--card); border-radius: 9px; padding: 10px 11px 9px;
+  box-shadow: var(--shadow); cursor: grab;
+  display: flex; flex-direction: column; gap: 6px;
+  border: 1.5px solid transparent;
+}
+.card:hover { border-color: var(--line); }
+.card.sel { border-color: var(--accent); }
+.card.dragging { opacity: 0.4; }
+.card h3 { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.35; }
+.lane[data-col="done"] .card h3 { color: var(--muted); }
+.tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.pdot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.meta { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.meta .ref { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.claude { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--claude); margin-left: auto; font-weight: 500; }
+.claude svg { width: 11px; height: 11px; }
+
+.drawer {
+  width: 360px; flex: none; border-left: 1px solid var(--line); background: var(--card);
+  padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+}
+.drawer[hidden] { display: none; }
+.drawer .top { display: flex; align-items: center; justify-content: space-between; }
+.close { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.close:hover { background: var(--lane); color: var(--ink); }
+.drawer h2 { font: 700 20px/1.2 var(--font-display); margin: 0; text-wrap: balance; }
+.fields { display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; align-items: center; }
+.fields dt { color: var(--muted); }
+.fields dd { margin: 0; display: flex; align-items: center; gap: 8px; }
+.fields select { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 8px; }
+.drawer h3 { font: 600 13px/1 var(--font-body); color: var(--muted); margin: 0 0 6px; text-transform: none; }
+.desc { margin: 0; max-width: 65ch; }
+.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hist li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+.hist .when { color: var(--muted); margin-left: auto; white-space: nowrap; font-size: 12px; }
+.hist .is-claude { color: var(--claude); font-weight: 500; }
+
+@media (max-width: 760px) {
+  .drawer { position: fixed; inset: 0; width: auto; z-index: 5; border: 0; }
+  .nav { display: none; }
+  .new { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="note">Maquette : tickets d'exemple tirés de <code>tasks/todo.md</code>. Glisse une carte d'une colonne à l'autre, clique sur une carte pour son détail, filtre par projet.</div>
+
+<header class="topbar">
+  <div class="brand"><div class="mark" aria-hidden="true">C</div><b>Creniaut</b><span>back-office</span></div>
+  <nav class="nav" aria-label="Sections"><a href="#" aria-current="page">Tableau</a></nav>
+  <div class="people" aria-label="Membres"><span class="av CB" title="CreniautB">CB</span><span class="av EC" title="EmilienCR">EC</span></div>
+</header>
+
+<section class="head">
+  <div>
+    <h1>Tableau</h1>
+    <div class="sub"><span id="summary"></span> · <span class="url" id="url"></span></div>
+  </div>
+  <div class="filters" id="filters" role="group" aria-label="Filtrer par projet"></div>
+  <button class="new" type="button">Nouveau ticket</button>
+</section>
+
+<div class="work">
+  <main class="board" id="board"></main>
+  <aside class="drawer" id="drawer" aria-label="Détail du ticket"></aside>
+</div>
+
+<script>
+const COLUMNS = [
+  { id: "idea", name: "Idées", color: "var(--s-idea)" },
+  { id: "todo", name: "À faire", color: "var(--s-todo)" },
+  { id: "doing", name: "En cours", color: "var(--s-doing)" },
+  { id: "done", name: "Fait", color: "var(--s-done)" },
+];
+const PROJECTS = {
+  notia: { name: "Notia", color: "var(--p-notia)" },
+  "back-office": { name: "Back-office", color: "var(--p-bo)" },
+};
+const PEOPLE = { CB: "CreniautB", EC: "EmilienCR" };
+
+const tickets = [
+  { id: 1, p: "notia", s: "idea", who: null, t: "Application Android sur le Play Store", d: "Emballer notias.fr dans une TWA (Bubblewrap), sans code natif. Compte Play Organisation, puis test fermé.", h: [["CB", "Créé", "12 oct."]] },
+  { id: 2, p: "notia", s: "idea", who: null, t: "Barre d'onglets en bas sur mobile", d: "Accueil, Quiz, Ludix, Classement, Profil, et un onglet « Plus ». Masquée pendant une partie.", h: [["CB", "Créé", "20 oct."]] },
+  { id: 3, p: "notia", s: "idea", who: null, t: "Repères : mode illimité et série de jours joués", d: "Séries hors classement ; faire avancer la série quotidienne avec Repères et Ludix.", h: [["EC", "Créé", "28 oct."]] },
+  { id: 4, p: "notia", s: "todo", who: "CB", t: "Compléter les mentions légales", d: "Éditeur, directeur de publication, contact et date. La page /mentions-legales affiche encore « à compléter ».", h: [["CB", "Créé", "4 nov."]] },
+  { id: 5, p: "notia", s: "todo", who: "EC", t: "Mettre en place les e-mails @notias.fr", d: "Boîte contact@ et alias (rgpd@, signalement@, admin@) chez IONOS, envoi Supabase par SMTP Brevo, DKIM et SPF.", h: [["CB", "Créé", "28 oct."], ["EC", "Pris en charge", "5 nov."]] },
+  { id: 6, p: "notia", s: "todo", who: "CB", t: "Réparer www.notias.fr", d: "Aucune réponse en HTTPS depuis la bascule sur Coolify. Ajouter le domaine www avec redirection vers notias.fr, puis redéployer.", h: [["claude", "Créé", "4 nov."]] },
+  { id: 7, p: "notia", s: "todo", who: null, t: "Ludix : gérer catégories et attributs dans le backoffice", d: "Aujourd'hui uniquement par le seed. À concevoir avec le prochain mode de jeu.", h: [["CB", "Créé", "2 nov."]] },
+  { id: 8, p: "notia", s: "doing", who: "CB", t: "Repères : caler les scores sur une semaine de vrais joueurs", d: "Ajuster l'échelle de la carte, la largeur de score de la frise et les paliers de la carte mixte.", h: [["CB", "Créé", "6 nov."], ["claude", "Déplacé vers En cours", "hier"]] },
+  { id: 9, p: "notia", s: "doing", who: "EC", t: "Accueil : vérifier la direction E sur téléphone", d: "En-tête à deux colonnes, les trois boutons des jeux, la frise illustrée, le mode sombre.", h: [["EC", "Créé", "10 nov."]] },
+  { id: 10, p: "notia", s: "done", who: "CB", ref: "PR #148", t: "Accueil direction E en ligne", d: "Trois boutons des jeux et frise illustrée.", h: [["CB", "Créé", "8 nov."], ["claude", "Déplacé vers Fait (PR #148 fusionnée)", "il y a 2 j"]] },
+  { id: 11, p: "notia", s: "done", who: "CB", ref: "PR #147", t: "Graphe du code pour Claude", d: "graphify pour parcourir le projet sans relire les fichiers.", h: [["CB", "Créé", "7 nov."], ["claude", "Déplacé vers Fait (PR #147 fusionnée)", "il y a 3 j"]] },
+  { id: 12, p: "back-office", s: "todo", who: "CB", t: "Créer le projet Supabase (offre Pro)", d: "Projet dédié au back-office, connexion Google limitée à vos deux comptes.", h: [["claude", "Créé", "aujourd'hui"]] },
+  { id: 13, p: "back-office", s: "todo", who: "EC", t: "Brancher todo.notias.fr dans Coolify et chez IONOS", d: "Nouvelle ressource Coolify construite depuis le repo, entrée DNS du sous-domaine.", h: [["claude", "Créé", "aujourd'hui"]] },
+  { id: 14, p: "back-office", s: "doing", who: "CB", t: "Valider la maquette du tableau", d: "Colonnes, contenu des cartes, filtre par projet, détail d'un ticket.", h: [["claude", "Créé", "aujourd'hui"], ["claude", "Déplacé vers En cours", "il y a 5 min"]] },
+];
+
+const SPARK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 0l1.1 4.3L11.5 3 8 6l3.5 3-4.4-1.3L6 12 4.9 7.7.5 9 4 6 .5 3l4.4 1.3z"/></svg>';
+let filter = "all";
+let selected = window.matchMedia("(max-width: 760px)").matches ? null : 8;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const visible = () => tickets.filter((t) => filter === "all" || t.p === filter);
+const lastByClaude = (t) => { const last = t.h[t.h.length - 1]; return last[0] === "claude" ? last[2] : null; };
+const avatar = (who) => who ? `<span class="av ${who}" title="${PEOPLE[who]}">${who}</span>` : `<span class="av none" title="Personne">–</span>`;
+
+function renderFilters() {
+  const opts = [["all", "Tous les projets", tickets.length]].concat(
+    Object.entries(PROJECTS).map(([k, p]) => [k, p.name, tickets.filter((t) => t.p === k).length])
+  );
+  $("filters").innerHTML = opts.map(([k, name, n]) =>
+    `<button type="button" class="chip" data-f="${k}" aria-pressed="${filter === k}">` +
+    (k === "all" ? "" : `<span class="pdot" style="background:${PROJECTS[k].color}"></span>`) +
+    `${name} <span class="n">${n}</span></button>`).join("");
+  const list = visible();
+  $("summary").textContent = `${list.length} tickets, ${list.filter((t) => t.s === "doing").length} en cours`;
+  $("url").textContent = "todo.notias.fr/todo" + (filter === "all" ? "" : "/" + filter);
+}
+
+function renderBoard() {
+  const list = visible();
+  $("board").innerHTML = COLUMNS.map((c) => {
+    const items = list.filter((t) => t.s === c.id);
+    return `<section class="lane" data-col="${c.id}" aria-label="${c.name}">
+      <header><span class="sdot" style="background:${c.color}"></span><h2>${c.name}</h2><span class="count">${items.length}</span><button type="button" class="add" aria-label="Ajouter dans ${c.name}">+</button></header>
+      ${items.map((t) => {
+        const byClaude = lastByClaude(t);
+        return `<article class="card${t.id === selected ? " sel" : ""}" draggable="true" tabindex="0" data-id="${t.id}">
+          <span class="tag"><span class="pdot" style="background:${PROJECTS[t.p].color}"></span>${PROJECTS[t.p].name}</span>
+          <h3>${esc(t.t)}</h3>
+          <div class="meta">${avatar(t.who)}${t.ref ? `<span class="ref">${t.ref}</span>` : ""}${byClaude ? `<span class="claude" title="Dernière modification par Claude">${SPARK}Claude · ${byClaude}</span>` : ""}</div>
+        </article>`;
+      }).join("")}
+    </section>`;
+  }).join("");
+}
+
+function renderDrawer() {
+  const d = $("drawer");
+  const t = tickets.find((x) => x.id === selected);
+  if (!t) { d.hidden = true; return; }
+  d.hidden = false;
+  d.innerHTML = `
+    <div class="top"><span class="tag"><span class="pdot" style="background:${PROJECTS[t.p].color}"></span>${PROJECTS[t.p].name}</span><button type="button" class="close" id="close" aria-label="Fermer le détail">×</button></div>
+    <h2>${esc(t.t)}</h2>
+    <dl class="fields">
+      <dt><label for="status">Colonne</label></dt>
+      <dd><select id="status">${COLUMNS.map((c) => `<option value="${c.id}"${c.id === t.s ? " selected" : ""}>${c.name}</option>`).join("")}</select></dd>
+      <dt><label for="who">Qui s'en occupe</label></dt>
+      <dd><select id="who"><option value="">Personne</option>${Object.entries(PEOPLE).map(([k, n]) => `<option value="${k}"${k === t.who ? " selected" : ""}>${n}</option>`).join("")}</select></dd>
+      ${t.ref ? `<dt>Lien</dt><dd>${t.ref}</dd>` : ""}
+    </dl>
+    <div><h3>Description</h3><p class="desc">${esc(t.d)}</p></div>
+    <div><h3>Historique</h3><ul class="hist">${t.h.slice().reverse().map(([who, what, when]) =>
+      `<li>${who === "claude" ? `<span class="is-claude">Claude</span>` : `<b>${PEOPLE[who] || who}</b>`}<span>${esc(what)}</span><span class="when">${when}</span></li>`).join("")}</ul></div>`;
+  $("close").onclick = () => { selected = null; render(); };
+  $("status").onchange = (e) => move(t.id, e.target.value);
+  $("who").onchange = (e) => { t.who = e.target.value || null; t.h.push(["Toi", "Responsable changé", "à l'instant"]); render(); };
+}
+
+function move(id, col) {
+  const t = tickets.find((x) => x.id === id);
+  if (!t || t.s === col) return;
+  t.s = col;
+  t.h.push(["Toi", "Déplacé vers " + COLUMNS.find((c) => c.id === col).name, "à l'instant"]);
+  render();
+}
+
+function render() { renderFilters(); renderBoard(); renderDrawer(); }
+
+$("filters").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  filter = b.dataset.f;
+  try { history.replaceState(null, "", filter === "all" ? location.pathname : "#" + filter); } catch (_) {}
+  render();
+});
+$("board").addEventListener("click", (e) => {
+  const c = e.target.closest(".card"); if (!c) return;
+  selected = Number(c.dataset.id); render();
+});
+$("board").addEventListener("keydown", (e) => {
+  const c = e.target.closest(".card");
+  if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selected = Number(c.dataset.id); render(); }
+});
+$("board").addEventListener("dragstart", (e) => {
+  const c = e.target.closest(".card"); if (!c) return;
+  e.dataTransfer.setData("text/plain", c.dataset.id); c.classList.add("dragging");
+});
+$("board").addEventListener("dragend", (e) => { const c = e.target.closest(".card"); if (c) c.classList.remove("dragging"); });
+$("board").addEventListener("dragover", (e) => {
+  const l = e.target.closest(".lane"); if (!l) return;
+  e.preventDefault();
+  document.querySelectorAll(".lane.over").forEach((x) => x !== l && x.classList.remove("over"));
+  l.classList.add("over");
+});
+$("board").addEventListener("dragleave", (e) => { const l = e.target.closest(".lane"); if (l && !l.contains(e.relatedTarget)) l.classList.remove("over"); });
+$("board").addEventListener("drop", (e) => {
+  const l = e.target.closest(".lane"); if (!l) return;
+  e.preventDefault(); l.classList.remove("over");
+  move(Number(e.dataTransfer.getData("text/plain")), l.dataset.col);
+});
+
+function fromHash() { const h = location.hash.slice(1); filter = PROJECTS[h] ? h : "all"; render(); }
+window.addEventListener("hashchange", fromHash);
+fromHash();
+</script>
+</body>
+</html>
