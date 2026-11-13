@@ -167,7 +167,7 @@ export function BoardColumns({
           />
         ))}
       </Grid>
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {active ? (
           <Box {...cardStyle} cursor="grabbing" borderColor="app.accent">
             <CardContent

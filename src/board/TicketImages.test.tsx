@@ -118,3 +118,22 @@ it("clicking a thumbnail opens it large; « Retirer l'image » deletes it", asyn
   );
   await vi.waitFor(() => expect(deleteImage).toHaveBeenCalledWith(image));
 });
+
+it("pasting text copied from Office into the description keeps the text and uploads nothing", async () => {
+  const drawer = await openTicket3();
+  await userEvent.click(
+    within(drawer).getByRole("button", { name: "Modifier" }),
+  );
+  const notPrevented = fireEvent.paste(
+    within(drawer).getByLabelText("Description"),
+    {
+      clipboardData: {
+        files: [makeFile("image.png", "image/png", 1000)],
+        types: ["text/plain", "text/html", "Files"],
+        getData: () => "A1	B1",
+      },
+    },
+  );
+  expect(notPrevented).toBe(true);
+  expect(uploadImage).not.toHaveBeenCalled();
+});

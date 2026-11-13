@@ -1,7 +1,7 @@
 create type public.ticket_status as enum ('idea', 'todo', 'doing', 'done');
 
 create table public.members (
-  email text primary key,
+  email text primary key check (email = lower(email)),
   name text not null,
   initials text not null check (char_length(initials) between 1 and 3)
 );
@@ -134,8 +134,12 @@ alter table public.tickets enable row level security;
 alter table public.ticket_events enable row level security;
 alter table public.ticket_images enable row level security;
 
+revoke all on public.members, public.projects, public.tickets, public.ticket_events,
+  public.ticket_images from anon;
 revoke insert, update, delete on public.members, public.projects, public.ticket_events
-  from anon, authenticated;
+  from authenticated;
+grant select on public.members, public.projects, public.ticket_events to authenticated;
+grant select, insert, update, delete on public.tickets, public.ticket_images to authenticated;
 
 create policy members_select on public.members
   for select to authenticated using (public.is_member());

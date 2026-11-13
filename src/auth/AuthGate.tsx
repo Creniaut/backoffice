@@ -65,7 +65,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (membership.isError) {
+  if (membership.isLoadingError) {
     return (
       <Panel>
         <Text>Impossible de vérifier l'accès pour le moment.</Text>

@@ -1,8 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router";
 import { AppRoutes } from "../AppRoutes";
-import { members, projects, tickets } from "../test/fixtures";
+import { makeFile, members, projects, tickets } from "../test/fixtures";
 import { renderWithProviders } from "../test/render";
 import { fetchBoard } from "./api";
 
@@ -131,4 +131,25 @@ it("a board load error offers a retry", async () => {
   expect(
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeInTheDocument();
+});
+
+it("a failed background refetch keeps the board on screen", async () => {
+  const { queryClient } = renderAt("/todo");
+  await screen.findByRole("heading", { name: "Tableau" });
+  vi.mocked(fetchBoard).mockRejectedValue(new Error("réseau"));
+  await act(() => queryClient.refetchQueries({ queryKey: ["board"] }));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(screen.getByRole("heading", { name: "Tableau" })).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeInTheDocument();
+});
+
+it("dropping a file on the board does not make the browser leave the app", async () => {
+  renderAt("/todo");
+  const lane = await screen.findByRole("region", { name: "À faire" });
+  const file = makeFile("capture.png", "image/png", 1000);
+  const dataTransfer = { files: [file], types: ["Files"] };
+  expect(fireEvent.dragOver(lane, { dataTransfer })).toBe(false);
+  expect(fireEvent.drop(lane, { dataTransfer })).toBe(false);
 });

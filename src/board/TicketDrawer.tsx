@@ -14,8 +14,9 @@ import {
   Text,
   Textarea,
 } from "@chakra-ui/react";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { LuX } from "react-icons/lu";
+import { hasFiles, isTextField } from "./dom";
 import { linkLabel } from "./format";
 import { LinkifiedText } from "./LinkifiedText";
 import { topPosition } from "./position";
@@ -53,9 +54,17 @@ const FieldLabel = chakra("label", { base: { color: "app.muted" } });
 function Description({ ticket }: { ticket: Ticket }) {
   const update = useUpdateTicket();
   const [editing, setEditing] = useState(false);
+  const cancelled = useRef(false);
 
   const action = editing ? null : (
-    <Button size="xs" variant="ghost" onClick={() => setEditing(true)}>
+    <Button
+      size="xs"
+      variant="ghost"
+      onClick={() => {
+        cancelled.current = false;
+        setEditing(true);
+      }}
+    >
       Modifier
     </Button>
   );
@@ -71,13 +80,13 @@ function Description({ ticket }: { ticket: Ticket }) {
           defaultValue={ticket.description}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
-              event.stopPropagation();
+              cancelled.current = true;
               setEditing(false);
             }
           }}
           onBlur={(event) => {
             const value = event.target.value;
-            if (value !== ticket.description) {
+            if (!cancelled.current && value !== ticket.description) {
               update.mutate({ id: ticket.id, patch: { description: value } });
             }
             setEditing(false);
@@ -137,10 +146,6 @@ function DeleteTicket({
   );
 }
 
-function hasFiles(types: readonly string[]) {
-  return types.includes("Files");
-}
-
 export function TicketDrawer({
   ticket,
   board,
@@ -183,6 +188,9 @@ function OpenTicketDrawer({
         if (!details.open) onClose();
       }}
       placement="end"
+      onEscapeKeyDown={(event) => {
+        if (isTextField(event.target)) event.preventDefault();
+      }}
       size={{ base: "full", md: "md" }}
     >
       <Portal>
@@ -192,13 +200,18 @@ function OpenTicketDrawer({
             bg="app.card"
             color="app.ink"
             onPaste={(event) => {
-              const files = Array.from(event.clipboardData?.files ?? []);
-              if (files.length === 0) return;
+              const clipboard = event.clipboardData;
+              const files = Array.from(clipboard?.files ?? []);
+              const text = Array.from(clipboard?.types ?? []).includes(
+                "text/plain",
+              );
+              if (files.length === 0 || (text && isTextField(event.target)))
+                return;
               event.preventDefault();
               addImages(files);
             }}
             onDragOver={(event) => {
-              if (hasFiles(Array.from(event.dataTransfer?.types ?? []))) {
+              if (hasFiles(event.dataTransfer)) {
                 event.preventDefault();
               }
             }}

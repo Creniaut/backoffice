@@ -17,6 +17,7 @@ import { BoardColumns } from "./BoardColumns";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
+import { useBlockFileNavigation } from "./useBlockFileNavigation";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketDrawer } from "./TicketDrawer";
 import { COLUMNS, type Status } from "./types";
@@ -29,6 +30,7 @@ export function BoardPage() {
   const { project } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const board = useBoard();
+  useBlockFileNavigation();
   const [creating, setCreating] = useState<Status | null>(null);
   const projectSlug = project ?? null;
   const ticketParam = searchParams.get("ticket");
@@ -62,7 +64,7 @@ export function BoardPage() {
     );
   }
 
-  if (board.isError) {
+  if (board.isLoadingError) {
     return (
       <Center flex="1">
         <Stack align="center" gap="3">

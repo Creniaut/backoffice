@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { fetchIsMember } from "../board/api";
 import { supabase } from "../lib/supabase";
@@ -77,4 +77,18 @@ it("membership check failure offers a retry instead of the board", async () => {
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeInTheDocument();
   expect(screen.queryByText("Contenu du tableau")).not.toBeInTheDocument();
+});
+
+it("a failed membership re-check keeps a member on the board", async () => {
+  vi.mocked(useSession).mockReturnValue({
+    status: "signedIn",
+    email: "cb@example.com",
+  });
+  vi.mocked(fetchIsMember).mockResolvedValue(true);
+  const { queryClient } = renderGate();
+  await screen.findByText("Contenu du tableau");
+  vi.mocked(fetchIsMember).mockRejectedValue(new Error("réseau"));
+  await act(() => queryClient.refetchQueries({ queryKey: ["member"] }));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(screen.getByText("Contenu du tableau")).toBeInTheDocument();
 });

@@ -42,17 +42,26 @@ async function as(email) {
   ]);
 }
 
+async function asAnon() {
+  await client.query("set local role anon");
+  await client.query("select set_config('request.jwt.claims', '', true)");
+}
+
 async function asClaude() {
   await client.query("reset role");
   await client.query("select set_config('request.jwt.claims', '', true)");
 }
 
-async function mustFail(name, sql, params = []) {
+async function mustFail(name, sql, params = [], code = "42501") {
   await client.query("savepoint attempt");
   try {
     await client.query(sql, params);
-  } catch {
+  } catch (error) {
     await client.query("rollback to savepoint attempt");
+    assert(
+      error.code === code,
+      `${name} : refusée pour une autre raison (${error.code} ${error.message})`,
+    );
     return;
   }
   throw new Error(`${name} : la requête aurait dû être refusée`);
@@ -92,6 +101,22 @@ async function run() {
     "insert into storage.objects (bucket_id, name) values ('ticket-images', 'check-db/x.png')",
   );
 
+  await mustFail(
+    "uppercase member e-mail",
+    "insert into members (email, name, initials) values ('Majuscule@Example.com', 'X', 'X')",
+    [],
+    "23514",
+  );
+  ok("member e-mails are lowercase");
+
+  await asAnon();
+  for (const table of TABLES) {
+    await mustFail(`anon reads ${table}`, `select count(*) from ${table}`);
+  }
+  assert((await one(BUCKET_OBJECTS)).n === 0, "anon lit le bucket");
+  ok("anon sees nothing");
+  await asClaude();
+
   await as(INTRUDER);
   for (const table of TABLES) {
     const { n } = await one(`select count(*)::int as n from ${table}`);
@@ -110,6 +135,21 @@ async function run() {
   await mustFail(
     "intruder upload",
     "insert into storage.objects (bucket_id, name) values ('ticket-images', 'intrus/x.png')",
+  );
+  const intruderUpdate = await client.query(
+    "update tickets set title = 'intrus' where id = ",
+    [seeded.id],
+  );
+  assert(
+    intruderUpdate.rowCount === 0,
+    "un compte hors liste modifie un ticket",
+  );
+  const intruderDelete = await client.query("delete from tickets where id = ", [
+    seeded.id,
+  ]);
+  assert(
+    intruderDelete.rowCount === 0,
+    "un compte hors liste supprime un ticket",
   );
   ok("intruder cannot write");
 

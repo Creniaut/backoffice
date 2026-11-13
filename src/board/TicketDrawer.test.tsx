@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router";
 import { AppRoutes } from "../AppRoutes";
@@ -193,4 +193,39 @@ it("closing the drawer removes the ticket param", async () => {
   await vi.waitFor(() =>
     expect(screen.getByTestId("location")).toHaveTextContent(/^\/todo\/notia$/),
   );
+});
+
+it("Escape in the description cancels the edit and keeps the drawer open", async () => {
+  renderAt("/todo?ticket=3");
+  const drawer = await screen.findByRole("dialog");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await userEvent.click(
+    within(drawer).getByRole("button", { name: "Modifier" }),
+  );
+  await userEvent.type(
+    within(drawer).getByLabelText("Description"),
+    " brouillon",
+  );
+  await userEvent.keyboard("{Escape}");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(screen.getByTestId("location")).toHaveTextContent("?ticket=3");
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(
+    within(drawer).queryByLabelText("Description"),
+  ).not.toBeInTheDocument();
+  expect(updateTicket).not.toHaveBeenCalled();
+});
+
+it("Escape while editing the title cancels it and keeps the drawer open", async () => {
+  renderAt("/todo?ticket=3");
+  const drawer = await screen.findByRole("dialog");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await userEvent.click(within(drawer).getByLabelText("Modifier le titre"));
+  const titleInput = within(drawer).getByRole("textbox", { name: "Titre" });
+  act(() => titleInput.focus());
+  expect(titleInput).toHaveFocus();
+  await userEvent.keyboard(" brouillon{Escape}");
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  expect(screen.getByTestId("location")).toHaveTextContent("?ticket=3");
+  expect(updateTicket).not.toHaveBeenCalled();
 });
