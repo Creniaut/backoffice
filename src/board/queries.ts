@@ -67,7 +67,8 @@ export function useUpdateTicket() {
 export function useCreateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createTicket,
+    mutationFn: (input: Parameters<typeof createTicket>[0]) =>
+      createTicket(input),
     onError: () => fail("Ticket non créé"),
     onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
   });
@@ -76,7 +77,7 @@ export function useCreateTicket() {
 export function useDeleteTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteTicket,
+    mutationFn: (id: number) => deleteTicket(id),
     onError: () => fail("Ticket non supprimé"),
     onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
   });

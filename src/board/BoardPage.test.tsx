@@ -10,6 +10,10 @@ vi.mock("./api", () => ({
   fetchBoard: vi.fn(),
   fetchEvents: vi.fn().mockResolvedValue([]),
   fetchImages: vi.fn().mockResolvedValue([]),
+  updateTicket: vi.fn(),
+  deleteTicket: vi.fn(),
+  uploadImage: vi.fn(),
+  deleteImage: vi.fn(),
 }));
 
 function LocationDisplay() {
