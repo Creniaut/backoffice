@@ -63,12 +63,12 @@ afterEach(() => vi.useRealTimers());
 
 it("?ticket=<id> opens the drawer with title, project, column and assignee", async () => {
   renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
-  const drawer = await screen.findByRole("dialog");
-  expect(
-    within(drawer).getByText(
-      "Repères : caler les scores sur une semaine de vrais joueurs",
-    ),
-  ).toBeInTheDocument();
+  const drawer = await screen.findByRole("dialog", {
+    name: "Repères : caler les scores sur une semaine de vrais joueurs",
+  });
+  expect(within(drawer).getByLabelText("Modifier le titre")).toHaveTextContent(
+    "Repères : caler les scores sur une semaine de vrais joueurs",
+  );
   expect(within(drawer).getByText("Notia")).toBeInTheDocument();
   expect(within(drawer).getByLabelText("Colonne")).toHaveValue("doing");
   expect(within(drawer).getByLabelText("Qui s'en occupe")).toHaveValue(

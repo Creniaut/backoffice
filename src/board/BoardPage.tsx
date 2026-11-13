@@ -1,6 +1,7 @@
 import {
   Button,
   Center,
+  IconButton,
   Flex,
   Heading,
   Link,
@@ -8,14 +9,17 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { LuPlus } from "react-icons/lu";
 import { Link as RouterLink, useParams, useSearchParams } from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
+import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketDrawer } from "./TicketDrawer";
+import { COLUMNS, type Status } from "./types";
 
 function plural(count: number, word: string) {
   return `${count} ${word}${count > 1 ? "s" : ""}`;
@@ -25,6 +29,7 @@ export function BoardPage() {
   const { project } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const board = useBoard();
+  const [creating, setCreating] = useState<Status | null>(null);
   const projectSlug = project ?? null;
   const ticketParam = searchParams.get("ticket");
   const ticketId = ticketParam === null ? null : Number(ticketParam);
@@ -107,12 +112,45 @@ export function BoardPage() {
           tickets={data.tickets}
           current={projectSlug}
         />
+        <Button
+          ms="auto"
+          bg="app.accent"
+          color="app.accentFg"
+          fontWeight="600"
+          _hover={{ opacity: 0.9 }}
+          onClick={() => setCreating("todo")}
+        >
+          Nouveau ticket
+        </Button>
       </Flex>
       <BoardColumns
         board={data}
         tickets={visible}
         onOpen={(id) => setSearchParams({ ticket: String(id) })}
+        laneAction={(status) => (
+          <IconButton
+            aria-label={`Ajouter dans ${COLUMNS.find((c) => c.id === status)?.label}`}
+            size="xs"
+            variant="ghost"
+            color="app.muted"
+            onClick={() => setCreating(status)}
+          >
+            <LuPlus />
+          </IconButton>
+        )}
       />
+      {creating && (
+        <NewTicketDialog
+          board={data}
+          status={creating}
+          projectSlug={projectSlug}
+          onClose={() => setCreating(null)}
+          onCreated={(id) => {
+            setCreating(null);
+            setSearchParams({ ticket: String(id) });
+          }}
+        />
+      )}
       <TicketDrawer ticket={ticket} board={data} onClose={closeTicket} />
     </>
   );

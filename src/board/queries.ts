@@ -69,6 +69,15 @@ export function useCreateTicket() {
   return useMutation({
     mutationFn: (input: Parameters<typeof createTicket>[0]) =>
       createTicket(input),
+    onSuccess: (ticket) => {
+      const board = queryClient.getQueryData<Board>(boardKey);
+      if (board) {
+        queryClient.setQueryData<Board>(boardKey, {
+          ...board,
+          tickets: [...board.tickets, ticket],
+        });
+      }
+    },
     onError: () => fail("Ticket non créé"),
     onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
   });

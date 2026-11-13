@@ -222,10 +222,12 @@ function OpenTicketDrawer({
               </Drawer.CloseTrigger>
             </Drawer.Header>
             <Drawer.Body display="flex" flexDirection="column" gap="5">
+              <Drawer.Title srOnly>{ticket.title}</Drawer.Title>
               <Editable.Root
                 key={ticket.title}
                 defaultValue={ticket.title}
                 submitMode="both"
+                translations={{ edit: "Modifier le titre", input: "Titre" }}
                 fontFamily="heading"
                 fontSize="20px"
                 fontWeight="700"
@@ -234,10 +236,8 @@ function OpenTicketDrawer({
                   if (title && title !== ticket.title) save({ title });
                 }}
               >
-                <Drawer.Title asChild>
-                  <Editable.Preview />
-                </Drawer.Title>
-                <Editable.Input aria-label="Titre" />
+                <Editable.Preview />
+                <Editable.Input />
               </Editable.Root>
 
               <Flex direction="column" gap="2.5">
