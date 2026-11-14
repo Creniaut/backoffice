@@ -2,7 +2,13 @@ import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router";
 import { AppRoutes } from "../AppRoutes";
-import { makeFile, members, projects, tickets } from "../test/fixtures";
+import {
+  makeFile,
+  makeTicket,
+  members,
+  projects,
+  tickets,
+} from "../test/fixtures";
 import { renderWithProviders } from "../test/render";
 import { fetchBoard } from "./api";
 
@@ -37,8 +43,8 @@ function renderAt(route: string) {
 
 const chip = async (name: RegExp) =>
   within(
-    await screen.findByRole("group", { name: "Filtrer par projet" }),
-  ).getByRole("button", { name });
+    await screen.findByRole("radiogroup", { name: "Filtrer par projet" }),
+  ).getByRole("radio", { name });
 
 const titles = () =>
   screen.queryAllByRole("heading", { level: 3 }).map((h) => h.textContent);
@@ -56,15 +62,15 @@ it("/ redirects to /todo", async () => {
 it("/todo shows every ticket and « Tous les projets » with the total", async () => {
   renderAt("/todo");
   const all = await chip(/Tous les projets/);
-  expect(all).toHaveAttribute("aria-pressed", "true");
-  expect(all).toHaveTextContent(String(tickets.length));
+  expect(all).toBeChecked();
+  expect(all).toHaveAccessibleName(`Tous les projets ${tickets.length}`);
   expect(titles()).toHaveLength(tickets.length);
 });
 
 it("/todo/notia shows only Notia tickets and marks the Notia chip pressed", async () => {
   renderAt("/todo/notia");
   const notia = await chip(/^Notia/);
-  expect(notia).toHaveAttribute("aria-pressed", "true");
+  expect(notia).toBeChecked();
   expect(titles()).toHaveLength(
     tickets.filter((t) => t.projectSlug === "notia").length,
   );
@@ -76,7 +82,11 @@ it("/todo/notia shows only Notia tickets and marks the Notia chip pressed", asyn
 it("clicking the Back-office chip navigates to /todo/back-office", async () => {
   renderAt("/todo");
   await userEvent.click(await chip(/^Back-office/));
-  expect(screen.getByTestId("location")).toHaveTextContent("/todo/back-office");
+  await vi.waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/todo/back-office",
+    ),
+  );
   expect(titles()).toEqual([
     "Créer le projet Supabase",
     "Valider la maquette du tableau",
@@ -97,8 +107,43 @@ it("header summary counts the filtered list", async () => {
   const notia = tickets.filter((t) => t.projectSlug === "notia");
   const doing = notia.filter((t) => t.status === "doing").length;
   expect(
-    await screen.findByText(`${notia.length} tickets, ${doing} en cours`),
+    await screen.findByText(`${notia.length} tickets · ${doing} en cours`),
   ).toBeInTheDocument();
+});
+
+it("an empty column says so and « Ajouter » creates a ticket in it", async () => {
+  renderAt("/todo/back-office");
+  const lane = await screen.findByRole("region", { name: "Idées" });
+  expect(within(lane).getByText("Aucun ticket ici.")).toBeInTheDocument();
+  await userEvent.click(within(lane).getByRole("button", { name: "Ajouter" }));
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByLabelText("Colonne")).toHaveValue("idea");
+});
+
+it("« Fait » shows the 5 most recent and unfolds the older ones", async () => {
+  const done = Array.from({ length: 7 }, (_, i) =>
+    makeTicket(100 + i, "notia", "done", i, `Fait ${i + 1}`),
+  );
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: done,
+  });
+  renderAt("/todo");
+  const lane = await screen.findByRole("region", { name: "Fait" });
+  const shown = () =>
+    within(lane)
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+  expect(shown()).toEqual(["Fait 1", "Fait 2", "Fait 3", "Fait 4", "Fait 5"]);
+  await userEvent.click(
+    within(lane).getByRole("button", { name: "Voir les 2 plus anciens" }),
+  );
+  expect(shown()).toHaveLength(7);
+  await userEvent.click(
+    within(lane).getByRole("button", { name: "Masquer les plus anciens" }),
+  );
+  expect(shown()).toHaveLength(5);
 });
 
 it("cards sit in their column, sorted by position", async () => {

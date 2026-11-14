@@ -1,31 +1,44 @@
 import {
+  Box,
   Button,
   chakra,
   Dialog,
-  Drawer,
   Editable,
   Flex,
   IconButton,
   Input,
-  Link,
-  NativeSelect,
   Portal,
+  SegmentGroup,
   Stack,
   Text,
   Textarea,
 } from "@chakra-ui/react";
-import { useRef, useState, type ReactNode } from "react";
-import { LuX } from "react-icons/lu";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { LuExternalLink, LuX } from "react-icons/lu";
 import { hasFiles, isTextField } from "./dom";
 import { linkLabel } from "./format";
 import { LinkifiedText } from "./LinkifiedText";
+import { MemberAvatar } from "./MemberAvatar";
 import { topPosition } from "./position";
 import { useDeleteTicket, useUpdateTicket } from "./queries";
 import { TicketHistory } from "./TicketHistory";
 import { ProjectTag } from "./TicketCard";
 import { TicketImages } from "./TicketImages";
-import { COLUMNS, type Board, type Status, type Ticket } from "./types";
+import {
+  COLUMNS,
+  type Board,
+  type Member,
+  type Status,
+  type Ticket,
+  type TicketPatch,
+} from "./types";
 import { useAddImages } from "./useAddImages";
+
+const labelStyle = {
+  fontSize: "13px",
+  fontWeight: "600",
+  color: "app.muted",
+} as const;
 
 function Section({
   title,
@@ -38,10 +51,8 @@ function Section({
 }) {
   return (
     <Stack gap="1.5">
-      <Flex align="center" justify="space-between">
-        <Text fontSize="13px" fontWeight="600" color="app.muted">
-          {title}
-        </Text>
+      <Flex align="center" justify="space-between" minH="6">
+        <Text {...labelStyle}>{title}</Text>
         {action}
       </Flex>
       {children}
@@ -49,7 +60,123 @@ function Section({
   );
 }
 
-const FieldLabel = chakra("label", { base: { color: "app.muted" } });
+const FieldLabel = chakra("label", { base: labelStyle });
+
+function StatusPicker({
+  value,
+  onChange,
+}: {
+  value: Status;
+  onChange: (status: Status) => void;
+}) {
+  return (
+    <SegmentGroup.Root
+      size="sm"
+      w="full"
+      minW="0"
+      aria-label="Colonne"
+      value={value}
+      onValueChange={({ value: next }) => {
+        const column = COLUMNS.find((c) => c.id === next);
+        if (column && column.id !== value) onChange(column.id);
+      }}
+    >
+      <SegmentGroup.Indicator />
+      {COLUMNS.map((column) => (
+        <SegmentGroup.Item key={column.id} value={column.id} flex="1" px="2">
+          <SegmentGroup.ItemText
+            display="inline-flex"
+            alignItems="center"
+            gap="1.5"
+          >
+            <Box
+              aria-hidden="true"
+              w="7px"
+              h="7px"
+              borderRadius="full"
+              flex="none"
+              bg={`status.${column.id}`}
+            />
+            {column.label}
+          </SegmentGroup.ItemText>
+          <SegmentGroup.ItemHiddenInput />
+        </SegmentGroup.Item>
+      ))}
+    </SegmentGroup.Root>
+  );
+}
+
+function AssigneeOption({
+  pressed,
+  label,
+  member,
+  onClick,
+}: {
+  pressed: boolean;
+  label: string;
+  member: Member | null;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      borderRadius="full"
+      ps="1"
+      pe={member ? "1" : "3"}
+      fontWeight="500"
+      aria-label={member ? label : undefined}
+      aria-pressed={pressed}
+      bg={pressed ? "app.lane" : "transparent"}
+      color={pressed ? "app.ink" : "app.muted"}
+      _hover={{ bg: "app.lane" }}
+      onClick={onClick}
+    >
+      <Box
+        as="span"
+        aria-hidden="true"
+        display="inline-flex"
+        opacity={pressed ? 1 : 0.5}
+      >
+        <MemberAvatar member={member} />
+      </Box>
+      {!member && label}
+    </Button>
+  );
+}
+
+function AssigneePicker({
+  members,
+  value,
+  onChange,
+}: {
+  members: Member[];
+  value: string | null;
+  onChange: (email: string | null) => void;
+}) {
+  const choose = (email: string | null) => {
+    if (email !== value) onChange(email);
+  };
+  return (
+    <Flex role="group" aria-label="Qui s'en occupe" gap="1" wrap="wrap">
+      <AssigneeOption
+        pressed={value === null}
+        label="Personne"
+        member={null}
+        onClick={() => choose(null)}
+      />
+      {members.map((member) => (
+        <AssigneeOption
+          key={member.email}
+          pressed={value === member.email}
+          label={member.name}
+          member={member}
+          onClick={() => choose(member.email)}
+        />
+      ))}
+    </Flex>
+  );
+}
 
 function Description({ ticket }: { ticket: Ticket }) {
   const update = useUpdateTicket();
@@ -177,177 +304,169 @@ function OpenTicketDrawer({
 }) {
   const update = useUpdateTicket();
   const addImages = useAddImages(ticket.id);
+  const panel = useRef<HTMLDivElement>(null);
   const project = board.projects.find((p) => p.slug === ticket.projectSlug);
-  const save = (patch: Parameters<typeof update.mutate>[0]["patch"]) =>
-    update.mutate({ id: ticket.id, patch });
+  const save = (patch: TicketPatch) => update.mutate({ id: ticket.id, patch });
+
+  useEffect(() => {
+    panel.current?.focus({ preventScroll: true });
+  }, []);
+
+  useEffect(() => {
+    const inOtherLayer = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return false;
+      const layer = target.closest('[role="dialog"], [role="alertdialog"]');
+      return layer !== null && layer !== panel.current;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (isTextField(event.target) || inOtherLayer(event.target)) return;
+      onClose();
+    };
+    const onPaste = (event: ClipboardEvent) => {
+      const clipboard = event.clipboardData;
+      const files = Array.from(clipboard?.files ?? []);
+      const text = Array.from(clipboard?.types ?? []).includes("text/plain");
+      if (files.length === 0 || inOtherLayer(event.target)) return;
+      if (text && isTextField(event.target)) return;
+      event.preventDefault();
+      addImages(files);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("paste", onPaste);
+    };
+  });
 
   return (
-    <Drawer.Root
-      open
-      onOpenChange={(details) => {
-        if (!details.open) onClose();
+    <Flex
+      as="aside"
+      ref={panel}
+      role="dialog"
+      aria-label={ticket.title}
+      tabIndex={-1}
+      direction="column"
+      flex="none"
+      w={{ base: "auto", md: "400px" }}
+      position={{ base: "fixed", md: "relative" }}
+      inset={{ base: "0", md: "auto" }}
+      zIndex={{ base: "overlay", md: "auto" }}
+      bg="app.card"
+      color="app.ink"
+      borderStartWidth={{ base: "0", md: "1px" }}
+      borderColor="app.line"
+      outline="none"
+      onDragOver={(event) => {
+        if (hasFiles(event.dataTransfer)) event.preventDefault();
       }}
-      placement="end"
-      onEscapeKeyDown={(event) => {
-        if (isTextField(event.target)) event.preventDefault();
+      onDrop={(event) => {
+        const files = Array.from(event.dataTransfer?.files ?? []);
+        if (files.length === 0) return;
+        event.preventDefault();
+        addImages(files);
       }}
-      size={{ base: "full", md: "md" }}
     >
-      <Portal>
-        <Drawer.Backdrop />
-        <Drawer.Positioner>
-          <Drawer.Content
-            bg="app.card"
-            color="app.ink"
-            onPaste={(event) => {
-              const clipboard = event.clipboardData;
-              const files = Array.from(clipboard?.files ?? []);
-              const text = Array.from(clipboard?.types ?? []).includes(
-                "text/plain",
-              );
-              if (files.length === 0 || (text && isTextField(event.target)))
-                return;
-              event.preventDefault();
-              addImages(files);
-            }}
-            onDragOver={(event) => {
-              if (hasFiles(event.dataTransfer)) {
-                event.preventDefault();
-              }
-            }}
-            onDrop={(event) => {
-              const files = Array.from(event.dataTransfer?.files ?? []);
-              if (files.length === 0) return;
-              event.preventDefault();
-              addImages(files);
-            }}
-          >
-            <Drawer.Header justifyContent="space-between" pb="2">
-              <ProjectTag project={project} />
-              <Drawer.CloseTrigger asChild position="static">
-                <IconButton
-                  aria-label="Fermer le détail"
-                  variant="ghost"
-                  size="sm"
+      <Flex align="center" justify="space-between" px="5" pt="3" pb="1">
+        <ProjectTag project={project} />
+        <IconButton
+          aria-label="Fermer le détail"
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+        >
+          <LuX />
+        </IconButton>
+      </Flex>
+      <Flex
+        direction="column"
+        gap="5"
+        flex="1"
+        minH="0"
+        overflowY="auto"
+        px="5"
+        pt="1"
+        pb="4"
+      >
+        <Editable.Root
+          key={ticket.title}
+          defaultValue={ticket.title}
+          submitMode="both"
+          translations={{ edit: "Modifier le titre", input: "Titre" }}
+          fontFamily="heading"
+          fontSize="20px"
+          fontWeight="700"
+          onValueCommit={({ value }) => {
+            const title = value.trim();
+            if (title && title !== ticket.title) save({ title });
+          }}
+        >
+          <Editable.Preview />
+          <Editable.Input />
+        </Editable.Root>
+
+        <Section title="Colonne">
+          <StatusPicker
+            value={ticket.status}
+            onChange={(status) =>
+              save({ status, position: topPosition(board.tickets, status) })
+            }
+          />
+        </Section>
+
+        <Section title="Qui s'en occupe">
+          <AssigneePicker
+            members={board.members}
+            value={ticket.assigneeEmail}
+            onChange={(assigneeEmail) => save({ assigneeEmail })}
+          />
+        </Section>
+
+        <Stack gap="1.5">
+          <FieldLabel htmlFor="ticket-link">Lien</FieldLabel>
+          <Flex gap="2">
+            <Input
+              id="ticket-link"
+              size="sm"
+              type="url"
+              placeholder="https://github.com/…"
+              key={ticket.link ?? ""}
+              defaultValue={ticket.link ?? ""}
+              onBlur={(event) => {
+                const link = event.target.value.trim() || null;
+                if (link !== ticket.link) save({ link });
+              }}
+            />
+            {ticket.link && (
+              <Button asChild size="sm" variant="outline" flex="none">
+                <a
+                  href={ticket.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Ouvrir ${linkLabel(ticket.link)}`}
                 >
-                  <LuX />
-                </IconButton>
-              </Drawer.CloseTrigger>
-            </Drawer.Header>
-            <Drawer.Body display="flex" flexDirection="column" gap="5">
-              <Drawer.Title srOnly>{ticket.title}</Drawer.Title>
-              <Editable.Root
-                key={ticket.title}
-                defaultValue={ticket.title}
-                submitMode="both"
-                translations={{ edit: "Modifier le titre", input: "Titre" }}
-                fontFamily="heading"
-                fontSize="20px"
-                fontWeight="700"
-                onValueCommit={({ value }) => {
-                  const title = value.trim();
-                  if (title && title !== ticket.title) save({ title });
-                }}
-              >
-                <Editable.Preview />
-                <Editable.Input />
-              </Editable.Root>
+                  Ouvrir
+                  <LuExternalLink aria-hidden="true" />
+                </a>
+              </Button>
+            )}
+          </Flex>
+        </Stack>
 
-              <Flex direction="column" gap="2.5">
-                <Flex align="center" gap="3">
-                  <FieldLabel htmlFor="ticket-status" w="120px" flex="none">
-                    Colonne
-                  </FieldLabel>
-                  <NativeSelect.Root size="sm">
-                    <NativeSelect.Field
-                      id="ticket-status"
-                      value={ticket.status}
-                      onChange={(event) => {
-                        const status = event.target.value as Status;
-                        save({
-                          status,
-                          position: topPosition(board.tickets, status),
-                        });
-                      }}
-                    >
-                      {COLUMNS.map((column) => (
-                        <option key={column.id} value={column.id}>
-                          {column.label}
-                        </option>
-                      ))}
-                    </NativeSelect.Field>
-                    <NativeSelect.Indicator />
-                  </NativeSelect.Root>
-                </Flex>
-                <Flex align="center" gap="3">
-                  <FieldLabel htmlFor="ticket-assignee" w="120px" flex="none">
-                    Qui s'en occupe
-                  </FieldLabel>
-                  <NativeSelect.Root size="sm">
-                    <NativeSelect.Field
-                      id="ticket-assignee"
-                      value={ticket.assigneeEmail ?? ""}
-                      onChange={(event) =>
-                        save({ assigneeEmail: event.target.value || null })
-                      }
-                    >
-                      <option value="">Personne</option>
-                      {board.members.map((member) => (
-                        <option key={member.email} value={member.email}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </NativeSelect.Field>
-                    <NativeSelect.Indicator />
-                  </NativeSelect.Root>
-                </Flex>
-                <Flex align="center" gap="3">
-                  <FieldLabel htmlFor="ticket-link" w="120px" flex="none">
-                    Lien
-                  </FieldLabel>
-                  <Input
-                    id="ticket-link"
-                    size="sm"
-                    type="url"
-                    placeholder="https://github.com/…"
-                    key={ticket.link ?? ""}
-                    defaultValue={ticket.link ?? ""}
-                    onBlur={(event) => {
-                      const link = event.target.value.trim() || null;
-                      if (link !== ticket.link) save({ link });
-                    }}
-                  />
-                </Flex>
-                {ticket.link && (
-                  <Link
-                    href={ticket.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    color="app.accent"
-                    fontSize="13px"
-                    ms="132px"
-                  >
-                    {`Ouvrir ${linkLabel(ticket.link)}`}
-                  </Link>
-                )}
-              </Flex>
+        <Description ticket={ticket} />
 
-              <Description ticket={ticket} />
+        <Section title="Images">
+          <TicketImages ticketId={ticket.id} />
+        </Section>
 
-              <Section title="Images">
-                <TicketImages ticketId={ticket.id} />
-              </Section>
-
-              <Section title="Historique">
-                <TicketHistory ticketId={ticket.id} members={board.members} />
-              </Section>
-            </Drawer.Body>
-            <Drawer.Footer justifyContent="flex-start">
-              <DeleteTicket ticket={ticket} onDeleted={onClose} />
-            </Drawer.Footer>
-          </Drawer.Content>
-        </Drawer.Positioner>
-      </Portal>
-    </Drawer.Root>
+        <Section title="Historique">
+          <TicketHistory ticketId={ticket.id} members={board.members} />
+        </Section>
+      </Flex>
+      <Flex px="5" py="2.5" borderTopWidth="1px" borderColor="app.line">
+        <DeleteTicket ticket={ticket} onDeleted={onClose} />
+      </Flex>
+    </Flex>
   );
 }

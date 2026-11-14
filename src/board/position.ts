@@ -36,7 +36,7 @@ export function resolveDrop(
     ? fullColumn.findIndex((t) => t.id === activeId)
     : -1;
 
-  let insertIndex = column.length;
+  let insertIndex = target.status === "done" ? 0 : column.length;
   if (target.overTicketId !== null) {
     const overIndex = column.findIndex((t) => t.id === target.overTicketId);
     if (overIndex !== -1) {

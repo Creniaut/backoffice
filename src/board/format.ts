@@ -57,7 +57,18 @@ export function linkLabel(url: string): string {
   if (github) {
     return `${github[1] === "pull" ? "PR" : "Issue"} #${github[2]}`;
   }
+  const commit =
+    parsed.hostname === "github.com" &&
+    parsed.pathname.match(/^\/[^/]+\/[^/]+\/commit\/([0-9a-f]{7,40})/i);
+  if (commit) return `Commit ${commit[1].slice(0, 7)}`;
   return parsed.hostname.replace(/^www\./, "");
+}
+
+export function boardSummary(tickets: Ticket[]): string {
+  if (tickets.length === 0) return "Aucun ticket";
+  const doing = tickets.filter((t) => t.status === "doing").length;
+  const count = `${tickets.length} ticket${tickets.length > 1 ? "s" : ""}`;
+  return `${count} · ${doing} en cours`;
 }
 
 export function linkify(

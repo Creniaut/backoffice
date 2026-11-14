@@ -1,6 +1,7 @@
 import { makeEvent, members, tickets } from "../test/fixtures";
 import {
   actorLabel,
+  boardSummary,
   eventLabel,
   formatRelative,
   linkify,
@@ -33,6 +34,12 @@ describe("linkLabel", () => {
     expect(linkLabel("https://github.com/Creniaut/notia/issues/7")).toBe(
       "Issue #7",
     ));
+  it("labels a commit with its short hash", () =>
+    expect(
+      linkLabel(
+        "https://github.com/Creniaut/backoffice/commit/4ae7efc0123456789abcdef0123456789abcdef0",
+      ),
+    ).toBe("Commit 4ae7efc"));
   it("falls back to the host", () =>
     expect(linkLabel("https://www.notias.fr/mentions-legales")).toBe(
       "notias.fr",
@@ -50,6 +57,15 @@ describe("linkify", () => {
     ]));
   it("returns one text part without URL", () =>
     expect(linkify("rien")).toEqual([{ type: "text", value: "rien" }]));
+});
+
+describe("boardSummary", () => {
+  it("says « Aucun ticket » for an empty list", () =>
+    expect(boardSummary([])).toBe("Aucun ticket"));
+  it("counts tickets and those in progress", () =>
+    expect(boardSummary(tickets)).toBe("10 tickets · 3 en cours"));
+  it("keeps « ticket » singular for one", () =>
+    expect(boardSummary(tickets.slice(0, 1))).toBe("1 ticket · 0 en cours"));
 });
 
 it("actorLabel", () => {

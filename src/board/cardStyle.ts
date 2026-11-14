@@ -9,6 +9,5 @@ export const cardStyle = {
   gap: "1.5",
   borderWidth: "1.5px",
   borderColor: "transparent",
-  boxShadow:
-    "0 1px 2px oklch(0.25 0.02 255 / 0.07), 0 2px 8px oklch(0.25 0.02 255 / 0.05)",
+  boxShadow: "card",
 } as const;
