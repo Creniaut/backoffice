@@ -1,7 +1,7 @@
 import {
+  Box,
   Button,
   Center,
-  IconButton,
   Flex,
   Heading,
   Link,
@@ -14,17 +14,13 @@ import { LuPlus } from "react-icons/lu";
 import { Link as RouterLink, useParams, useSearchParams } from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
-import { ticketsForProject } from "./format";
+import { boardSummary, ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
 import { useBlockFileNavigation } from "./useBlockFileNavigation";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketDrawer } from "./TicketDrawer";
-import { COLUMNS, type Status } from "./types";
-
-function plural(count: number, word: string) {
-  return `${count} ${word}${count > 1 ? "s" : ""}`;
-}
+import type { Status } from "./types";
 
 export function BoardPage() {
   const { project } = useParams();
@@ -96,51 +92,47 @@ export function BoardPage() {
   }
 
   const visible = ticketsForProject(data.tickets, projectSlug);
-  const doing = visible.filter((t) => t.status === "doing").length;
 
   return (
     <>
-      <Flex wrap="wrap" align="end" gap="3 6" px="5" pt="5" pb="3.5">
-        <Stack gap="1">
-          <Heading as="h1" fontSize="26px" fontWeight="700" lineHeight="1.1">
-            Tableau
-          </Heading>
-          <Text color="app.muted" fontVariantNumeric="tabular-nums">
-            {`${plural(visible.length, "ticket")}, ${doing} en cours`}
-          </Text>
-        </Stack>
+      <Flex wrap="wrap" align="center" gap="3 4" px="5" pt="4" pb="3.5">
+        <Heading as="h1" srOnly>
+          Tableau
+        </Heading>
         <ProjectFilter
           projects={data.projects}
           tickets={data.tickets}
           current={projectSlug}
         />
+        <Text color="app.muted" fontVariantNumeric="tabular-nums">
+          {boardSummary(visible)}
+        </Text>
         <Button
           ms="auto"
+          size="sm"
+          aria-label="Nouveau ticket"
           bg="app.accent"
           color="app.accentFg"
           fontWeight="600"
           _hover={{ opacity: 0.9 }}
           onClick={() => setCreating("todo")}
         >
-          Nouveau ticket
+          <LuPlus aria-hidden="true" />
+          <Box as="span" hideBelow="md">
+            Nouveau ticket
+          </Box>
         </Button>
       </Flex>
-      <BoardColumns
-        board={data}
-        tickets={visible}
-        onOpen={(id) => setSearchParams({ ticket: String(id) })}
-        laneAction={(status) => (
-          <IconButton
-            aria-label={`Ajouter dans ${COLUMNS.find((c) => c.id === status)?.label}`}
-            size="xs"
-            variant="ghost"
-            color="app.muted"
-            onClick={() => setCreating(status)}
-          >
-            <LuPlus />
-          </IconButton>
-        )}
-      />
+      <Flex flex="1" minH="0">
+        <BoardColumns
+          board={data}
+          tickets={visible}
+          selectedId={ticket?.id ?? null}
+          onOpen={(id) => setSearchParams({ ticket: String(id) })}
+          onAdd={setCreating}
+        />
+        <TicketDrawer ticket={ticket} board={data} onClose={closeTicket} />
+      </Flex>
       {creating && (
         <NewTicketDialog
           board={data}
@@ -153,7 +145,6 @@ export function BoardPage() {
           }}
         />
       )}
-      <TicketDrawer ticket={ticket} board={data} onClose={closeTicket} />
     </>
   );
 }

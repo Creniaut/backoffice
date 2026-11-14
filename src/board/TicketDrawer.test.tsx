@@ -70,10 +70,13 @@ it("?ticket=<id> opens the drawer with title, project, column and assignee", asy
     "Repères : caler les scores sur une semaine de vrais joueurs",
   );
   expect(within(drawer).getByText("Notia")).toBeInTheDocument();
-  expect(within(drawer).getByLabelText("Colonne")).toHaveValue("doing");
-  expect(within(drawer).getByLabelText("Qui s'en occupe")).toHaveValue(
-    "cb@example.com",
-  );
+  expect(within(drawer).getByRole("radio", { name: "En cours" })).toBeChecked();
+  expect(
+    within(drawer).getByRole("button", { name: "CreniautB" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  expect(
+    within(drawer).getByRole("button", { name: "Personne" }),
+  ).toHaveAttribute("aria-pressed", "false");
 });
 
 it("?ticket=999 keeps it closed, removes the param and toasts « Ticket introuvable »", async () => {
@@ -91,10 +94,7 @@ it("?ticket=999 keeps it closed, removes the param and toasts « Ticket introuva
 it("changing « Colonne » to « Fait » sends status done at the top of the column", async () => {
   renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
   const drawer = await screen.findByRole("dialog");
-  await userEvent.selectOptions(
-    within(drawer).getByLabelText("Colonne"),
-    "done",
-  );
+  await userEvent.click(within(drawer).getByRole("radio", { name: "Fait" }));
   await vi.waitFor(() =>
     expect(updateTicket).toHaveBeenCalledWith(CLAUDE_TICKET_ID, {
       status: "done",
@@ -106,15 +106,71 @@ it("changing « Colonne » to « Fait » sends status done at the top of the col
 it("changing « Qui s'en occupe » to « Personne » clears the assignee", async () => {
   renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
   const drawer = await screen.findByRole("dialog");
-  await userEvent.selectOptions(
-    within(drawer).getByLabelText("Qui s'en occupe"),
-    "",
+  await userEvent.click(
+    within(drawer).getByRole("button", { name: "Personne" }),
   );
   await vi.waitFor(() =>
     expect(updateTicket).toHaveBeenCalledWith(CLAUDE_TICKET_ID, {
       assigneeEmail: null,
     }),
   );
+});
+
+it("clicking the current column or assignee sends nothing", async () => {
+  renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
+  const drawer = await screen.findByRole("dialog");
+  await userEvent.click(
+    within(drawer).getByRole("radio", { name: "En cours" }),
+  );
+  await userEvent.click(
+    within(drawer).getByRole("button", { name: "CreniautB" }),
+  );
+  expect(updateTicket).not.toHaveBeenCalled();
+});
+
+it("« Ouvrir » opens the ticket link in a new tab", async () => {
+  renderAt("/todo?ticket=7");
+  const drawer = await screen.findByRole("dialog");
+  const open = within(drawer).getByRole("link", { name: "Ouvrir PR #148" });
+  expect(open).toHaveAttribute(
+    "href",
+    "https://github.com/Creniaut/notia/pull/148",
+  );
+  expect(open).toHaveAttribute("target", "_blank");
+});
+
+it("Escape outside a text field closes the panel", async () => {
+  renderAt("/todo/notia?ticket=3");
+  await screen.findByRole("dialog");
+  await userEvent.keyboard("{Escape}");
+  await vi.waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/todo\/notia$/),
+  );
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("the board stays usable: another card replaces the open ticket", async () => {
+  renderAt("/todo?ticket=3");
+  await screen.findByRole("dialog", { name: "Compléter les mentions légales" });
+  await userEvent.click(
+    screen.getByText("Mettre en place les e-mails @notias.fr"),
+  );
+  expect(
+    await screen.findByRole("dialog", {
+      name: "Mettre en place les e-mails @notias.fr",
+    }),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId("location")).toHaveTextContent("?ticket=4");
+});
+
+it("the open ticket's card is marked as current", async () => {
+  renderAt("/todo?ticket=3");
+  await screen.findByRole("dialog");
+  const lane = screen.getByRole("region", { name: "À faire" });
+  const card = within(lane)
+    .getByRole("heading", { name: "Compléter les mentions légales" })
+    .closest('[aria-roledescription="sortable"]');
+  expect(card).toHaveAttribute("aria-current", "true");
 });
 
 it("history lists « Claude » « Déplacé vers En cours » « hier », newest first", async () => {

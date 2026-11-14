@@ -48,6 +48,15 @@ describe("resolveDrop", () => {
     ).toEqual({ status: "doing", position: 8 });
   });
 
+  it("puts a card dropped on the « Fait » column itself at the top", () => {
+    expect(
+      resolveDrop(tickets, 1, { status: "done", overTicketId: null }),
+    ).toEqual({ status: "done", position: -1 });
+    expect(
+      resolveDrop(tickets, 7, { status: "done", overTicketId: null }),
+    ).toBeNull();
+  });
+
   it("returns null when nothing changes", () => {
     expect(
       resolveDrop(tickets, 9, { status: "doing", overTicketId: null }),

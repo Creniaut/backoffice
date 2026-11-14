@@ -52,7 +52,8 @@ export function CardContent({ ticket, project, assignee }: CardProps) {
       </Heading>
       <Flex
         align="center"
-        gap="2"
+        wrap="wrap"
+        gap="1 2"
         minH="24px"
         fontSize="12px"
         color="app.muted"
@@ -91,8 +92,9 @@ export function CardContent({ ticket, project, assignee }: CardProps) {
 
 export function TicketCard({
   onOpen,
+  selected = false,
   ...props
-}: CardProps & { onOpen: (id: number) => void }) {
+}: CardProps & { onOpen: (id: number) => void; selected?: boolean }) {
   const {
     attributes,
     listeners,
@@ -111,9 +113,11 @@ export function TicketCard({
       {...attributes}
       {...listeners}
       {...cardStyle}
+      aria-current={selected || undefined}
       cursor="grab"
       opacity={isDragging ? 0.4 : 1}
-      _hover={{ borderColor: "app.line" }}
+      borderColor={selected ? "app.accent" : "transparent"}
+      _hover={{ borderColor: selected ? "app.accent" : "app.line" }}
       _focusVisible={{
         outline: "2px solid",
         outlineColor: "app.accent",
