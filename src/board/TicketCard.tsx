@@ -15,14 +15,27 @@ import {
   type Ticket,
 } from "./types";
 
+const tagStyle = {
+  align: "center",
+  gap: "1",
+  h: "20px",
+  px: "2",
+  borderRadius: "full",
+  borderWidth: "1px",
+  borderColor: "app.line",
+  fontSize: "11px",
+  lineHeight: "1",
+  whiteSpace: "nowrap",
+} as const;
+
 function PriorityTag({ priority }: { priority: Priority }) {
   const label = PRIORITIES.find((p) => p.id === priority)?.label ?? "";
   const name = `Priorité ${label.toLowerCase()}`;
   return (
     <Flex
-      align="center"
-      gap="1"
-      fontWeight="500"
+      {...tagStyle}
+      fontWeight="600"
+      color="app.ink"
       aria-label={name}
       title={name}
     >
@@ -45,7 +58,7 @@ function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
   const label = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? "";
   const name = `Difficulté ${label.toLowerCase()}`;
   return (
-    <Flex align="center" gap="1" aria-label={name} title={name}>
+    <Flex {...tagStyle} aria-label={name} title={name}>
       <LuGauge aria-hidden="true" />
       <Text as="span" aria-hidden="true">
         {label}

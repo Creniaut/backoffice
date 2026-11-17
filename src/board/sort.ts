@@ -1,6 +1,6 @@
 import type { Difficulty, Priority, Ticket } from "./types";
 
-export type SortMode = "manual" | "priority";
+export type SortMode = "manual" | "priority" | "difficulty";
 
 const STORAGE_KEY = "board-sort";
 const UNSET = 3;
@@ -11,29 +11,35 @@ const DIFFICULTY_RANK: Record<Difficulty, number> = {
   hard: 2,
 };
 
-function byPriority(a: Ticket, b: Ticket): number {
-  const priority =
-    (a.priority ? PRIORITY_RANK[a.priority] : UNSET) -
-    (b.priority ? PRIORITY_RANK[b.priority] : UNSET);
-  if (priority !== 0) return priority;
-  return (
-    (a.difficulty ? DIFFICULTY_RANK[a.difficulty] : UNSET) -
-    (b.difficulty ? DIFFICULTY_RANK[b.difficulty] : UNSET)
-  );
+const priorityRank = (t: Ticket) =>
+  t.priority ? PRIORITY_RANK[t.priority] : UNSET;
+const difficultyRank = (t: Ticket) =>
+  t.difficulty ? DIFFICULTY_RANK[t.difficulty] : UNSET;
+
+function compare(a: Ticket, b: Ticket, mode: SortMode): number {
+  if (mode === "priority") {
+    return (
+      priorityRank(a) - priorityRank(b) || difficultyRank(a) - difficultyRank(b)
+    );
+  }
+  if (mode === "difficulty") {
+    return (
+      difficultyRank(a) - difficultyRank(b) || priorityRank(a) - priorityRank(b)
+    );
+  }
+  return 0;
 }
 
 export function sortLane(tickets: Ticket[], mode: SortMode): Ticket[] {
   return [...tickets].sort(
-    (a, b) =>
-      (mode === "priority" ? byPriority(a, b) : 0) || a.position - b.position,
+    (a, b) => compare(a, b, mode) || a.position - b.position,
   );
 }
 
 export function readSortMode(): SortMode {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "priority"
-      ? "priority"
-      : "manual";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === "priority" || stored === "difficulty" ? stored : "manual";
   } catch {
     return "manual";
   }

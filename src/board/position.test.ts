@@ -2,13 +2,13 @@ import { makeTicket, tickets } from "../test/fixtures";
 import {
   positionBetween,
   resolveDrop,
-  resolvePriorityDrop,
+  resolveSortedDrop,
   topPosition,
 } from "./position";
 
-describe("resolvePriorityDrop", () => {
+describe("resolveSortedDrop", () => {
   it("does nothing inside the same column", () => {
-    expect(resolvePriorityDrop(tickets, 3, "todo")).toBeNull();
+    expect(resolveSortedDrop(tickets, 3, "todo")).toBeNull();
   });
 
   it("goes to the top of the whole column, other projects included", () => {
@@ -17,14 +17,14 @@ describe("resolvePriorityDrop", () => {
       makeTicket(2, "back-office", "doing", -3, "B"),
       makeTicket(3, "notia", "doing", 0, "C"),
     ];
-    expect(resolvePriorityDrop(board, 1, "doing")).toEqual({
+    expect(resolveSortedDrop(board, 1, "doing")).toEqual({
       status: "doing",
       position: -4,
     });
   });
 
   it("ignores an unknown ticket", () => {
-    expect(resolvePriorityDrop(tickets, 999, "done")).toBeNull();
+    expect(resolveSortedDrop(tickets, 999, "done")).toBeNull();
   });
 });
 

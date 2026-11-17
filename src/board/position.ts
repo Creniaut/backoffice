@@ -21,7 +21,7 @@ export function topPosition(tickets: Ticket[], status: Status): number {
   return positionBetween(null, column[0]?.position ?? null);
 }
 
-export function resolvePriorityDrop(
+export function resolveSortedDrop(
   tickets: Ticket[],
   activeId: number,
   status: Status,

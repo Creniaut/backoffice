@@ -14,7 +14,7 @@ import { LuPlus } from "react-icons/lu";
 import { Link as RouterLink, useParams, useSearchParams } from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
-import { boardSummary, ticketsForProject } from "./format";
+import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
 import { readSortMode, writeSortMode, type SortMode } from "./sort";
@@ -107,9 +107,6 @@ export function BoardPage() {
           tickets={data.tickets}
           current={projectSlug}
         />
-        <Text color="app.muted" fontVariantNumeric="tabular-nums">
-          {boardSummary(visible)}
-        </Text>
         <SortToggle
           value={sortMode}
           onChange={(mode) => {
