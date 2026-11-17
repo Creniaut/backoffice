@@ -1,7 +1,7 @@
 import { Box, Flex, Heading, Text } from "@chakra-ui/react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LuImage, LuSparkles } from "react-icons/lu";
+import { LuGauge, LuImage, LuSparkles } from "react-icons/lu";
 import { cardStyle } from "./cardStyle";
 import { formatRelative, linkLabel } from "./format";
 import { MemberAvatar } from "./MemberAvatar";
@@ -17,12 +17,14 @@ import {
 
 function PriorityTag({ priority }: { priority: Priority }) {
   const label = PRIORITIES.find((p) => p.id === priority)?.label ?? "";
+  const name = `Priorité ${label.toLowerCase()}`;
   return (
     <Flex
       align="center"
       gap="1"
       fontWeight="500"
-      aria-label={`Priorité ${label.toLowerCase()}`}
+      aria-label={name}
+      title={name}
     >
       <Box
         aria-hidden="true"
@@ -41,10 +43,14 @@ function PriorityTag({ priority }: { priority: Priority }) {
 
 function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
   const label = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? "";
+  const name = `Difficulté ${label.toLowerCase()}`;
   return (
-    <Text as="span" aria-label={`Difficulté ${label.toLowerCase()}`}>
-      {label}
-    </Text>
+    <Flex align="center" gap="1" aria-label={name} title={name}>
+      <LuGauge aria-hidden="true" />
+      <Text as="span" aria-hidden="true">
+        {label}
+      </Text>
+    </Flex>
   );
 }
 

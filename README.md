@@ -102,7 +102,7 @@ where project_slug = '<slug>' and (title ilike '%<mot>%' or description ilike '%
 
 -- Créer en haut de sa colonne ('idea' ou 'todo', le même aux deux endroits)
 insert into tickets (project_slug, title, description, status, priority, difficulty, position)
-values ('<slug>', '<titre>', '<description>', 'idea', 'medium', 'easy',
+values ('<slug>', '<titre>', '<description>', 'idea', '<high|medium|low>', '<easy|medium|hard>',
   (select coalesce(min(position), 0) - 1 from tickets where status = 'idea'));
 
 -- Compléter un ticket existant

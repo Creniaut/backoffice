@@ -63,6 +63,20 @@ it("shows « Priorité haute » and « Facile » when set", () => {
   );
 });
 
+it("tells a medium difficulty apart from a medium priority (icon and tooltip)", () => {
+  renderCard(
+    makeTicket(21, "notia", "todo", 0, "Moyen partout", {
+      priority: "medium",
+      difficulty: "medium",
+    }),
+  );
+  const priority = screen.getByLabelText("Priorité moyenne");
+  const difficulty = screen.getByLabelText("Difficulté moyenne");
+  expect(priority).toHaveAttribute("title", "Priorité moyenne");
+  expect(difficulty).toHaveAttribute("title", "Difficulté moyenne");
+  expect(difficulty.querySelector("svg")).not.toBeNull();
+});
+
 it("shows no priority nor difficulty when unset", () => {
   renderCard(tickets.find((t) => t.id === 1)!);
   expect(screen.queryByLabelText(/^Priorité/)).not.toBeInTheDocument();
