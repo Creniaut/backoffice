@@ -114,7 +114,15 @@ export function BoardPage() {
 
   return (
     <>
-      <Flex wrap="wrap" align="center" gap="3 4" px="5" pt="4" pb="3.5">
+      <Flex
+        wrap="wrap"
+        align="center"
+        rowGap="3"
+        columnGap="4"
+        px="5"
+        pt="4"
+        pb="3.5"
+      >
         <Heading as="h1" srOnly>
           Tableau
         </Heading>
