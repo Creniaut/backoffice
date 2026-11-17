@@ -104,13 +104,44 @@ it("/todo/inconnu shows « Projet inconnu » and a « Voir tous les projets » l
   ).toHaveAttribute("href", "/todo");
 });
 
-it("header summary counts the filtered list", async () => {
+it("the toolbar shows no ticket count nor « Trier » label", async () => {
   renderAt("/todo/notia");
-  const notia = tickets.filter((t) => t.projectSlug === "notia");
-  const doing = notia.filter((t) => t.status === "doing").length;
+  await screen.findByRole("radiogroup", { name: "Trier" });
+  expect(screen.queryByText(/tickets · /)).not.toBeInTheDocument();
+  expect(screen.queryByText("Trier")).not.toBeInTheDocument();
+});
+
+it("« Difficulté » ranks cards by difficulty, then priority", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: [
+      makeTicket(51, "notia", "todo", 0, "Difficile", { difficulty: "hard" }),
+      makeTicket(52, "notia", "todo", 1, "Sans difficulté"),
+      makeTicket(53, "notia", "todo", 2, "Facile basse", {
+        difficulty: "easy",
+        priority: "low",
+      }),
+      makeTicket(54, "notia", "todo", 3, "Facile haute", {
+        difficulty: "easy",
+        priority: "high",
+      }),
+    ],
+  });
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Difficile" });
+  await userEvent.click(
+    within(screen.getByRole("radiogroup", { name: "Trier" })).getByRole(
+      "radio",
+      { name: "Difficulté" },
+    ),
+  );
   expect(
-    await screen.findByText(`${notia.length} tickets · ${doing} en cours`),
-  ).toBeInTheDocument();
+    within(screen.getByRole("region", { name: "À faire" }))
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent),
+  ).toEqual(["Facile haute", "Facile basse", "Difficile", "Sans difficulté"]);
+  expect(localStorage.getItem("board-sort")).toBe("difficulty");
 });
 
 it("an empty column says so and « Ajouter » creates a ticket in it", async () => {

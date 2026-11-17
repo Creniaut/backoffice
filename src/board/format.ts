@@ -64,13 +64,6 @@ export function linkLabel(url: string): string {
   return parsed.hostname.replace(/^www\./, "");
 }
 
-export function boardSummary(tickets: Ticket[]): string {
-  if (tickets.length === 0) return "Aucun ticket";
-  const doing = tickets.filter((t) => t.status === "doing").length;
-  const count = `${tickets.length} ticket${tickets.length > 1 ? "s" : ""}`;
-  return `${count} · ${doing} en cours`;
-}
-
 export function linkify(
   text: string,
 ): Array<{ type: "text" | "link"; value: string }> {

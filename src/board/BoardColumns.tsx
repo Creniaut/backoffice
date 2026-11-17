@@ -27,7 +27,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { LuPlus } from "react-icons/lu";
-import { resolveDrop, resolvePriorityDrop } from "./position";
+import { resolveDrop, resolveSortedDrop } from "./position";
 import { useUpdateTicket } from "./queries";
 import { sortLane, type SortMode } from "./sort";
 import { cardStyle } from "./cardStyle";
@@ -260,9 +260,9 @@ export function BoardColumns({
     if (!over || !status) return;
     const overTicketId = typeof over.id === "number" ? over.id : null;
     const drop =
-      sortMode === "priority"
-        ? resolvePriorityDrop(board.tickets, Number(active.id), status)
-        : resolveDrop(tickets, Number(active.id), { status, overTicketId });
+      sortMode === "manual"
+        ? resolveDrop(tickets, Number(active.id), { status, overTicketId })
+        : resolveSortedDrop(board.tickets, Number(active.id), status);
     if (drop) updateTicket.mutate({ id: Number(active.id), patch: drop });
   };
 

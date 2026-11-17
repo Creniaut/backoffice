@@ -29,6 +29,20 @@ describe("sortLane", () => {
     ]);
   });
 
+  it("difficulty mode ranks easy, medium, hard, then none; high priority first; then position", () => {
+    const lane = [
+      card(1, 0, null, "hard"),
+      card(2, 1, null, null),
+      card(3, 2, "low", "easy"),
+      card(4, 3, "high", "easy"),
+      card(5, 4, null, "medium"),
+      card(6, 5, null, "easy"),
+    ];
+    expect(sortLane(lane, "difficulty").map((t) => t.id)).toEqual([
+      4, 3, 6, 5, 1, 2,
+    ]);
+  });
+
   it("manual mode keeps the position order", () => {
     const lane = [card(1, 2, "high", null), card(2, 0, null, null)];
     expect(sortLane(lane, "manual").map((t) => t.id)).toEqual([2, 1]);
@@ -50,6 +64,11 @@ describe("readSortMode", () => {
   it("returns the stored mode", () => {
     writeSortMode("priority");
     expect(readSortMode()).toBe("priority");
+  });
+
+  it("returns the stored difficulty mode", () => {
+    writeSortMode("difficulty");
+    expect(readSortMode()).toBe("difficulty");
   });
 
   it("falls back to manual without a stored value", () => {
