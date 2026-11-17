@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
@@ -36,3 +36,30 @@ jobs:
           --build-arg VITE_SUPABASE_URL=https://example.supabase.co
           --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=ci-placeholder
           -t backoffice:ci .
+
+  migrate:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [checks, docker]
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx --yes supabase@3.2.0 db push --db-url "$DATABASE_URL" --yes
+      - run: node scripts/check-db.mjs
+
+  deploy:
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - run: >
+          curl -fsS -X POST "$COOLIFY_DEPLOY_URL"
+          -H "Authorization: Bearer $COOLIFY_TOKEN"
+        env:
+          COOLIFY_DEPLOY_URL: ${{ secrets.COOLIFY_DEPLOY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}

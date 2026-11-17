@@ -27,7 +27,7 @@ Vite + React 19 + TypeScript strict, Chakra UI v3, TanStack Query, React Router,
 
 ## Base de données
 
-- Migrations dans `supabase/migrations/`, appliquées avec `npx supabase db push --db-url "$DATABASE_URL"`. Pas de `supabase login` : son jeton couvre tout le compte.
+- Migrations dans `supabase/migrations/`, appliquées par la CI à chaque push sur `main` (voir « Mise en ligne ») ; à la main si besoin : `npx supabase db push --db-url "$DATABASE_URL"`. Pas de `supabase login` : son jeton couvre tout le compte.
 - Accès réservé aux e-mails de la table `members`. Ajouter un membre : `insert into members (email, name, initials) values (…);`.
 - Ajouter un projet : `insert into projects (slug, name, color) values ('mon-projet', 'Mon projet', 'oklch(0.6 0.12 300)');`. Il apparaît dans le filtre et à l'adresse `/todo/mon-projet`.
 - `tickets.priority` (`high`, `medium`, `low`) et `tickets.difficulty` (`easy`, `medium`, `hard`) sont facultatives. Le tri « Priorité » du tableau, mémorisé dans le navigateur, range les colonnes par priorité puis difficulté ; « Fait » garde les plus récents en tête.
@@ -35,7 +35,7 @@ Vite + React 19 + TypeScript strict, Chakra UI v3, TanStack Query, React Router,
 
 ## Mise en ligne
 
-Coolify, projet `backoffice` : ressource « Private Repository » sur ce repo, branche `main`, build par le `Dockerfile`, port 80, domaine `https://todo.notias.fr`. Les deux variables `VITE_` sont des **variables de build**. Chaque push sur `main` redéploie. DNS : enregistrement `A` `todo` vers l'IP du VPS, chez IONOS.
+Coolify, projet `backoffice` : ressource « Private Repository » sur ce repo, branche `main`, build par le `Dockerfile`, port 80, domaine `https://todo.notias.fr`. Les deux variables `VITE_` sont des **variables de build**. Le redéploiement automatique de Coolify est coupé : c'est la CI (`.github/workflows/ci.yml`) qui, à chaque push sur `main`, enchaîne vérifications, migration de la base (`supabase db push`), contrôle `scripts/check-db.mjs`, puis déploiement par l'API Coolify (`POST /api/v1/deploy?uuid=…`). Une migration ou un contrôle en échec bloque le déploiement : le site reste sur l'ancienne version. Secrets GitHub : `DATABASE_URL`, `COOLIFY_DEPLOY_URL`, `COOLIFY_TOKEN` (jeton Coolify à permission `deploy` seule, sans expiration). DNS : enregistrement `A` `todo` vers l'IP du VPS, chez IONOS.
 
 ## Connecteur Claude (MCP Supabase)
 
