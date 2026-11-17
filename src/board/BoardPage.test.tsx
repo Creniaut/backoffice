@@ -53,6 +53,8 @@ beforeEach(() => {
   vi.mocked(fetchBoard).mockResolvedValue({ projects, members, tickets });
 });
 
+afterEach(() => localStorage.clear());
+
 it("/ redirects to /todo", async () => {
   renderAt("/");
   await screen.findByRole("heading", { name: "Tableau" });
@@ -158,6 +160,58 @@ it("cards sit in their column, sorted by position", async () => {
     "Accueil : vérifier la direction E",
     "Valider la maquette du tableau",
   ]);
+});
+
+it("« Trier : Priorité » ranks cards by priority and is remembered", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: [
+      makeTicket(31, "notia", "todo", 0, "Basse", { priority: "low" }),
+      makeTicket(32, "notia", "todo", 1, "Sans priorité"),
+      makeTicket(33, "notia", "todo", 2, "Haute", { priority: "high" }),
+    ],
+  });
+  const laneTitles = () =>
+    within(screen.getByRole("region", { name: "À faire" }))
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+  const { unmount } = renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Haute" });
+  expect(laneTitles()).toEqual(["Basse", "Sans priorité", "Haute"]);
+
+  await userEvent.click(
+    within(screen.getByRole("radiogroup", { name: "Trier" })).getByRole(
+      "radio",
+      { name: "Priorité" },
+    ),
+  );
+  expect(laneTitles()).toEqual(["Haute", "Basse", "Sans priorité"]);
+  expect(localStorage.getItem("board-sort")).toBe("priority");
+
+  unmount();
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Haute" });
+  expect(laneTitles()).toEqual(["Haute", "Basse", "Sans priorité"]);
+});
+
+it("« Fait » keeps the most recent first in priority mode", async () => {
+  localStorage.setItem("board-sort", "priority");
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: [
+      makeTicket(41, "notia", "done", 0, "Récent", { priority: "low" }),
+      makeTicket(42, "notia", "done", 1, "Ancien", { priority: "high" }),
+    ],
+  });
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Récent" });
+  expect(
+    within(screen.getByRole("region", { name: "Fait" }))
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent),
+  ).toEqual(["Récent", "Ancien"]);
 });
 
 it("clicking a card sets ?ticket=<id>", async () => {

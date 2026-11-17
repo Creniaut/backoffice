@@ -27,8 +27,9 @@ import {
 } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { LuPlus } from "react-icons/lu";
-import { resolveDrop } from "./position";
+import { resolveDrop, resolvePriorityDrop } from "./position";
 import { useUpdateTicket } from "./queries";
+import { sortLane, type SortMode } from "./sort";
 import { cardStyle } from "./cardStyle";
 import { CardContent, TicketCard } from "./TicketCard";
 import { COLUMNS, type Board, type Status, type Ticket } from "./types";
@@ -39,6 +40,7 @@ interface ColumnsProps {
   board: Board;
   tickets: Ticket[];
   selectedId: number | null;
+  sortMode: SortMode;
   onOpen: (id: number) => void;
   onAdd: (status: Status) => void;
 }
@@ -235,6 +237,7 @@ export function BoardColumns({
   board,
   tickets,
   selectedId,
+  sortMode,
   onOpen,
   onAdd,
 }: ColumnsProps) {
@@ -256,10 +259,10 @@ export function BoardColumns({
     const status = over?.data.current?.status as Status | undefined;
     if (!over || !status) return;
     const overTicketId = typeof over.id === "number" ? over.id : null;
-    const drop = resolveDrop(tickets, Number(active.id), {
-      status,
-      overTicketId,
-    });
+    const drop =
+      sortMode === "priority"
+        ? resolvePriorityDrop(board.tickets, Number(active.id), status)
+        : resolveDrop(tickets, Number(active.id), { status, overTicketId });
     if (drop) updateTicket.mutate({ id: Number(active.id), patch: drop });
   };
 
@@ -298,9 +301,10 @@ export function BoardColumns({
               status={column.id}
               label={column.label}
               board={board}
-              tickets={tickets
-                .filter((t) => t.status === column.id)
-                .sort((a, b) => a.position - b.position)}
+              tickets={sortLane(
+                tickets.filter((t) => t.status === column.id),
+                column.id === "done" ? "manual" : sortMode,
+              )}
               selectedId={selectedId}
               shownOnPhone={column.id === phoneColumn}
               onOpen={onOpen}

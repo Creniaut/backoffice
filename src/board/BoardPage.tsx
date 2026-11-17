@@ -17,6 +17,8 @@ import { BoardColumns } from "./BoardColumns";
 import { boardSummary, ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
+import { readSortMode, writeSortMode, type SortMode } from "./sort";
+import { SortToggle } from "./SortToggle";
 import { useBlockFileNavigation } from "./useBlockFileNavigation";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketDrawer } from "./TicketDrawer";
@@ -28,6 +30,7 @@ export function BoardPage() {
   const board = useBoard();
   useBlockFileNavigation();
   const [creating, setCreating] = useState<Status | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
   const projectSlug = project ?? null;
   const ticketParam = searchParams.get("ticket");
   const ticketId = ticketParam === null ? null : Number(ticketParam);
@@ -107,6 +110,13 @@ export function BoardPage() {
         <Text color="app.muted" fontVariantNumeric="tabular-nums">
           {boardSummary(visible)}
         </Text>
+        <SortToggle
+          value={sortMode}
+          onChange={(mode) => {
+            setSortMode(mode);
+            writeSortMode(mode);
+          }}
+        />
         <Button
           ms="auto"
           size="sm"
@@ -128,6 +138,7 @@ export function BoardPage() {
           board={data}
           tickets={visible}
           selectedId={ticket?.id ?? null}
+          sortMode={sortMode}
           onOpen={(id) => setSearchParams({ ticket: String(id) })}
           onAdd={setCreating}
         />
