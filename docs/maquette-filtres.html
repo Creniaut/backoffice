@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau : filtres et tri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Barre d'outils en deux groupes : projets à gauche, filtres et tri à droite des projets, bouton de création au bout */
+:root {
+  --bg: oklch(0.975 0.004 250);
+  --lane: oklch(0.948 0.007 250);
+  --card: oklch(1 0 0);
+  --ink: oklch(0.25 0.02 255);
+  --muted: oklch(0.53 0.015 255);
+  --line: oklch(0.9 0.008 250);
+  --accent: oklch(0.43 0.11 252);
+  --accent-soft: oklch(0.93 0.03 252);
+  --claude: oklch(0.6 0.13 45);
+  --p-notia: oklch(0.55 0.12 202);
+  --p-bo: oklch(0.62 0.13 75);
+  --s-idea: oklch(0.7 0.01 255);
+  --s-todo: oklch(0.6 0.12 252);
+  --s-doing: oklch(0.72 0.14 75);
+  --s-done: oklch(0.62 0.12 150);
+  --high: oklch(0.55 0.19 25);
+  --high-soft: oklch(0.95 0.03 25);
+  --medium: oklch(0.55 0.12 70);
+  --medium-soft: oklch(0.95 0.04 80);
+  --low: oklch(0.5 0.015 255);
+  --low-soft: oklch(0.95 0.005 255);
+  --shadow: 0 1px 2px oklch(0.25 0.02 255 / 0.07), 0 2px 8px oklch(0.25 0.02 255 / 0.05);
+  --pop: 0 8px 28px oklch(0.25 0.02 255 / 0.16), 0 1px 3px oklch(0.25 0.02 255 / 0.1);
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(0.2 0.012 255); --lane: oklch(0.235 0.013 255); --card: oklch(0.285 0.014 255);
+    --ink: oklch(0.94 0.008 250); --muted: oklch(0.7 0.015 255); --line: oklch(0.36 0.014 255);
+    --accent: oklch(0.74 0.1 252); --accent-soft: oklch(0.32 0.04 252);
+    --high: oklch(0.78 0.13 25); --high-soft: oklch(0.33 0.06 25);
+    --medium: oklch(0.82 0.11 80); --medium-soft: oklch(0.33 0.05 80);
+    --low: oklch(0.75 0.015 255); --low-soft: oklch(0.32 0.01 255);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --pop: 0 10px 30px oklch(0 0 0 / 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: oklch(0.2 0.012 255); --lane: oklch(0.235 0.013 255); --card: oklch(0.285 0.014 255);
+  --ink: oklch(0.94 0.008 250); --muted: oklch(0.7 0.015 255); --line: oklch(0.36 0.014 255);
+  --accent: oklch(0.74 0.1 252); --accent-soft: oklch(0.32 0.04 252);
+  --high: oklch(0.78 0.13 25); --high-soft: oklch(0.33 0.06 25);
+  --medium: oklch(0.82 0.11 80); --medium-soft: oklch(0.33 0.05 80);
+  --low: oklch(0.75 0.015 255); --low-soft: oklch(0.32 0.01 255);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --pop: 0 10px 30px oklch(0 0 0 / 0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--font-body); display: flex; flex-direction: column; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.note { background: var(--accent-soft); font-size: 13px; padding: 8px 20px; }
+
+.topbar { display: flex; align-items: center; gap: 24px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.mark { width: 26px; height: 26px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font: 700 14px/1 var(--font-display); }
+.brand b { font: 600 15px/1 var(--font-display); }
+.brand span { color: var(--muted); }
+.tab { padding: 6px 10px; border-radius: 6px; background: var(--lane); font-weight: 500; }
+
+/* Barre d'outils */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 16px 20px 14px; }
+.projects { display: flex; padding: 3px; gap: 2px; background: var(--lane); border-radius: 10px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.projects::-webkit-scrollbar { display: none; }
+.seg { border: 0; background: transparent; padding: 5px 11px; border-radius: 7px; cursor: pointer; font-weight: 500; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.seg[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.seg .n { opacity: 0.6; }
+.pdot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+
+.tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tools .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.menu { position: relative; }
+.trigger { height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px 0 12px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.trigger:hover { border-color: var(--muted); }
+.trigger .chev { width: 14px; height: 14px; color: var(--muted); }
+.trigger.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.trigger.active .chev { color: var(--accent); }
+.trigger .count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--card); font-size: 11px; font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
+.trigger .lbl { color: var(--muted); font-weight: 400; }
+.clear { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 6px 6px; border-radius: 6px; font-size: 13px; }
+.clear:hover { color: var(--ink); background: var(--lane); }
+.clear[hidden] { display: none; }
+
+.pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; min-width: 210px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--pop); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.pop[hidden] { display: none; }
+.opt { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; text-align: left; width: 100%; }
+.opt:hover { background: var(--lane); }
+.box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--line); display: grid; place-items: center; flex: none; }
+.opt[aria-checked="true"] .box { background: var(--accent); border-color: var(--accent); }
+.box svg { width: 11px; height: 11px; color: var(--card); opacity: 0; }
+.opt[aria-checked="true"] .box svg { opacity: 1; }
+.radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; display: grid; place-items: center; }
+.opt[aria-checked="true"] .radio { border-color: var(--accent); }
+.opt[aria-checked="true"] .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.opt .n { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; }
+.pop .foot { border: 0; background: transparent; color: var(--accent); cursor: pointer; padding: 6px 8px; text-align: left; border-radius: 6px; font-weight: 500; }
+.pop .foot:hover { background: var(--lane); }
+
+.new { margin-left: auto; height: 34px; background: var(--accent); color: var(--card); border: 0; border-radius: 8px; padding: 0 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Colonnes et cartes */
+.board { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(230px, 1fr)); gap: 12px; padding: 0 20px 20px; overflow-x: auto; align-items: start; }
+.lane { background: var(--lane); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.lane header { display: flex; align-items: center; gap: 8px; padding: 2px 4px 4px; }
+.lane h2 { font: 600 14px/1 var(--font-display); margin: 0; }
+.lane .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.empty { color: var(--muted); font-size: 13px; padding: 10px 6px; text-align: center; }
+
+.card { background: var(--card); border-radius: 9px; padding: 10px 11px 9px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px; border: 1.5px solid transparent; }
+.card:hover { border-color: var(--line); }
+.card h3 { font-size: 14px; font-weight: 500; margin: 0; line-height: 1.35; text-wrap: pretty; }
+.lane[data-col="done"] .card h3 { color: var(--muted); }
+.proj { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+.av { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 600; flex: none; }
+.av.BC { background: oklch(0.86 0.06 252); color: oklch(0.3 0.08 252); }
+.av.EC { background: oklch(0.87 0.07 150); color: oklch(0.3 0.07 150); }
+.av.none { border: 1.5px dashed var(--line); color: var(--muted); }
+.pill { height: 20px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.pill.high { background: var(--high-soft); color: var(--high); }
+.pill.medium { background: var(--medium-soft); color: var(--medium); }
+.pill.low { background: var(--low-soft); color: var(--low); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.diff { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+.pill.diff svg { width: 12px; height: 12px; }
+.ref { font-size: 12px; color: var(--muted); }
+.claude { margin-left: auto; font-size: 12px; color: var(--claude); font-weight: 500; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .toolbar { gap: 10px; }
+  .projects { width: 100%; }
+  .new { margin-left: 0; }
+  .board { grid-template-columns: repeat(4, minmax(250px, 85vw)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="note">Maquette : le menu « Priorité » est ouvert avec Haute et Moyenne cochées. Coche, décoche, change le tri ou le projet : les colonnes suivent.</div>
+
+<header class="topbar">
+  <div class="brand"><div class="mark" aria-hidden="true">C</div><b>Creniaut</b><span>back-office</span></div>
+  <span class="tab">Tableau</span>
+</header>
+
+<section class="toolbar" aria-label="Filtres du tableau">
+  <div class="projects" id="projects" role="group" aria-label="Filtrer par projet"></div>
+  <div class="tools">
+    <div class="menu" id="m-priority"></div>
+    <div class="menu" id="m-difficulty"></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div class="menu" id="m-sort"></div>
+    <button class="clear" id="clear" type="button">Effacer les filtres</button>
+  </div>
+  <button class="new" type="button"><span aria-hidden="true">+</span> Nouveau ticket</button>
+</section>
+
+<main class="board" id="board"></main>
+
+<script>
+const CHECK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2 5 8.5l4.5-5"/></svg>';
+const CHEV = '<svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
+const GAUGE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>';
+
+const COLUMNS = [
+  { id: "idea", name: "Idées", color: "var(--s-idea)" },
+  { id: "todo", name: "À faire", color: "var(--s-todo)" },
+  { id: "doing", name: "En cours", color: "var(--s-doing)" },
+  { id: "done", name: "Fait", color: "var(--s-done)" },
+];
+const PROJECTS = { notia: { name: "Notia", color: "var(--p-notia)" }, "back-office": { name: "Back-office", color: "var(--p-bo)" } };
+const PRIORITIES = [["high", "Haute"], ["medium", "Moyenne"], ["low", "Basse"], ["none", "Sans priorité"]];
+const DIFFICULTIES = [["easy", "Facile"], ["medium", "Moyenne"], ["hard", "Difficile"], ["none", "Sans difficulté"]];
+const SORTS = [["manual", "Manuel"], ["priority", "Priorité"], ["difficulty", "Difficulté"]];
+
+const T = (id, p, s, pr, di, t, extra = {}) => ({ id, p, s, pr, di, t, pos: id, ...extra });
+const tickets = [
+  T(56, "notia", "idea", "medium", "easy", "Se faire connaître : liens entrants et listes de jeux du jour"),
+  T(32, "notia", "idea", "medium", "medium", "Indicateurs de rétention (Ludix, Repères)"),
+  T(22, "notia", "idea", "medium", "medium", "Vie privée : purge des comptes inactifs, GeoJSON et drapeaux chez nous"),
+  T(61, "notia", "idea", "low", "easy", "Jeu sans compte : finitions relevées en revue"),
+  T(38, "notia", "idea", "low", "easy", "Ludix : réponse d'hier sur l'accueil"),
+  T(28, "notia", "idea", "low", "hard", "Mode multijoueur en temps réel"),
+  T(4, "notia", "todo", "high", "easy", "Ouverture au public : mentions légales et vérifications"),
+  T(6, "notia", "todo", "high", "easy", "Sécuriser le serveur : 2FA Coolify, jeton root, clé SSH de la CI"),
+  T(40, "notia", "todo", "high", "hard", "ELO par thème faussé par les parties multi-thèmes"),
+  T(67, "notia", "todo", "medium", "easy", "Mesure d'audience sans cookie avec Umami"),
+  T(62, "notia", "todo", "medium", "medium", "Vérifier la qualité de l'ensemble des drapeaux", { who: "EC" }),
+  T(43, "notia", "todo", "low", "easy", "Dependabot : merger les PR #112 et #75"),
+  T(12, "notia", "todo", "low", "hard", "Tests backend : flux de jeu, routes, auth, services"),
+  T(70, "back-office", "todo", null, null, "Retirer une priorité depuis le volet"),
+  T(66, "notia", "doing", "high", "easy", "Transfert du domaine notias.fr d'IONOS vers OVH"),
+  T(53, "notia", "doing", "medium", "easy", "Search Console, Bing Webmaster et mesure d'audience"),
+  T(50, "notia", "doing", "medium", "medium", "Refonte du logo"),
+  T(21, "notia", "doing", "medium", "hard", "Application Android (Play Store)", { who: "BC" }),
+  T(68, "back-office", "done", "medium", "medium", "Priorité et difficulté des tickets, tri par priorité", { ref: "PR #2", claude: "il y a 2 h" }),
+  T(65, "notia", "done", "medium", "easy", "SEO : descriptions des pages, H1 du classement, redirections", { ref: "PR #164", claude: "il y a 6 h" }),
+  T(59, "notia", "done", "high", "hard", "Jouer à Ludix et Repères sans compte", { ref: "PR #161", claude: "hier" }),
+];
+
+const state = { project: "all", priorities: new Set(["high", "medium"]), difficulties: new Set(), sort: "manual", open: "priority" };
+
+const rank = { high: 0, medium: 1, low: 2, easy: 0, hard: 2 };
+const r = (v) => (v ? rank[v] : 3);
+const inProject = (t) => state.project === "all" || t.p === state.project;
+const matches = (set, v) => set.size === 0 || set.has(v ?? "none");
+const visible = () => tickets.filter((t) => inProject(t) && matches(state.priorities, t.pr) && matches(state.difficulties, t.di));
+function sortLane(list, col) {
+  const mode = col === "done" ? "manual" : state.sort;
+  return [...list].sort((a, b) =>
+    (mode === "priority" ? r(a.pr) - r(b.pr) || r(a.di) - r(b.di)
+      : mode === "difficulty" ? r(a.di) - r(b.di) || r(a.pr) - r(b.pr) : 0) || a.pos - b.pos);
+}
+
+function renderProjects() {
+  const counts = { all: tickets.length };
+  for (const t of tickets) counts[t.p] = (counts[t.p] ?? 0) + 1;
+  const items = [["all", "Tous les projets", null], ...Object.entries(PROJECTS).map(([k, v]) => [k, v.name, v.color])];
+  document.getElementById("projects").innerHTML = items.map(([k, name, color]) =>
+    `<button class="seg" type="button" data-p="${k}" aria-pressed="${state.project === k}">${color ? `<span class="pdot" style="background:${color}"></span>` : ""}${name} <span class="n">${counts[k] ?? 0}</span></button>`).join("");
+}
+
+function renderMenu(id, key, label, options, set) {
+  const scoped = tickets.filter(inProject);
+  const field = key === "priority" ? "pr" : "di";
+  const active = set.size > 0;
+  const open = state.open === key;
+  document.getElementById(id).innerHTML = `
+    <button class="trigger${active ? " active" : ""}" type="button" aria-haspopup="true" aria-expanded="${open}" data-open="${key}">
+      ${label}${active ? `<span class="count">${set.size}</span>` : ""}${CHEV}
+    </button>
+    <div class="pop" role="menu" aria-label="${label}"${open ? "" : " hidden"}>
+      ${options.map(([v, name]) => `
+        <button class="opt" type="button" role="menuitemcheckbox" aria-checked="${set.has(v)}" data-toggle="${key}" data-v="${v}">
+          <span class="box">${CHECK}</span>${pillFor(key, v, name)}<span class="n">${scoped.filter((t) => (t[field] ?? "none") === v).length}</span>
+        </button>`).join("")}
+      <hr><button class="foot" type="button" data-reset="${key}">Tout afficher</button>
+    </div>`;
+}
+
+function renderSort() {
+  const open = state.open === "sort";
+  const current = SORTS.find(([v]) => v === state.sort)[1];
+  document.getElementById("m-sort").innerHTML = `
+    <button class="trigger" type="button" aria-haspopup="true" aria-expanded="${open}" data-open="sort"><span class="lbl">Tri :</span> ${current}${CHEV}</button>
+    <div class="pop" role="menu" aria-label="Tri"${open ? "" : " hidden"}>
+      ${SORTS.map(([v, name]) => `<button class="opt" type="button" role="menuitemradio" aria-checked="${state.sort === v}" data-sort="${v}"><span class="radio"></span>${name}</button>`).join("")}
+    </div>`;
+}
+
+function pillFor(key, v, name) {
+  if (v === "none") return `<span>${name}</span>`;
+  return key === "priority"
+    ? `<span class="pill ${v}"><span class="dot"></span>${name}</span>`
+    : `<span class="pill diff">${GAUGE}${name}</span>`;
+}
+
+function card(t) {
+  const pr = PRIORITIES.find(([v]) => v === t.pr)?.[1];
+  const di = DIFFICULTIES.find(([v]) => v === t.di)?.[1];
+  return `<article class="card">
+    <span class="proj"><span class="pdot" style="background:${PROJECTS[t.p].color}"></span>${PROJECTS[t.p].name}</span>
+    <h3>${t.t}</h3>
+    <div class="meta">
+      ${t.who ? `<span class="av ${t.who}">${t.who}</span>` : `<span class="av none" title="Personne">–</span>`}
+      ${t.pr ? `<span class="pill ${t.pr}" title="Priorité ${pr.toLowerCase()}"><span class="dot"></span>${pr}</span>` : ""}
+      ${t.di ? `<span class="pill diff" title="Difficulté ${di.toLowerCase()}">${GAUGE}${di}</span>` : ""}
+      ${t.ref ? `<span class="ref">${t.ref}</span>` : ""}
+      ${t.claude ? `<span class="claude">✦ Claude · ${t.claude}</span>` : ""}
+    </div>
+  </article>`;
+}
+
+function renderBoard() {
+  const list = visible();
+  document.getElementById("board").innerHTML = COLUMNS.map((c) => {
+    const lane = sortLane(list.filter((t) => t.s === c.id), c.id);
+    return `<section class="lane" data-col="${c.id}" aria-label="${c.name}">
+      <header><span class="sdot" style="background:${c.color}"></span><h2>${c.name}</h2><span class="count">${lane.length}</span></header>
+      ${lane.length ? lane.map(card).join("") : `<p class="empty">Aucun ticket pour ces filtres</p>`}
+    </section>`;
+  }).join("");
+}
+
+function render() {
+  renderProjects();
+  renderMenu("m-priority", "priority", "Priorité", PRIORITIES, state.priorities);
+  renderMenu("m-difficulty", "difficulty", "Difficulté", DIFFICULTIES, state.difficulties);
+  renderSort();
+  document.getElementById("clear").hidden = state.priorities.size === 0 && state.difficulties.size === 0;
+  renderBoard();
+}
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("button");
+  if (!el) { state.open = null; return render(); }
+  if (el.dataset.p) state.project = el.dataset.p;
+  else if (el.dataset.open) state.open = state.open === el.dataset.open ? null : el.dataset.open;
+  else if (el.dataset.toggle) {
+    const set = el.dataset.toggle === "priority" ? state.priorities : state.difficulties;
+    set.has(el.dataset.v) ? set.delete(el.dataset.v) : set.add(el.dataset.v);
+  } else if (el.dataset.reset) (el.dataset.reset === "priority" ? state.priorities : state.difficulties).clear();
+  else if (el.dataset.sort) { state.sort = el.dataset.sort; state.open = null; }
+  else if (el.id === "clear") { state.priorities.clear(); state.difficulties.clear(); }
+  else state.open = null;
+  render();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.open) { state.open = null; render(); } });
+
+render();
+</script>
+</body>
+</html>

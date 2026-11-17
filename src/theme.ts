@@ -51,9 +51,12 @@ const config = defineConfig({
           done: { value: "oklch(0.62 0.12 150)" },
         },
         priority: {
-          high: { value: "oklch(0.6 0.19 25)" },
-          medium: { value: "oklch(0.72 0.14 75)" },
-          low: { value: "oklch(0.7 0.01 255)" },
+          high: tone("oklch(0.55 0.19 25)", "oklch(0.78 0.13 25)"),
+          highSoft: tone("oklch(0.95 0.03 25)", "oklch(0.33 0.06 25)"),
+          medium: tone("oklch(0.55 0.12 70)", "oklch(0.82 0.11 80)"),
+          mediumSoft: tone("oklch(0.95 0.04 80)", "oklch(0.33 0.05 80)"),
+          low: tone("oklch(0.5 0.015 255)", "oklch(0.75 0.015 255)"),
+          lowSoft: tone("oklch(0.95 0.005 255)", "oklch(0.32 0.01 255)"),
         },
       },
       shadows: {

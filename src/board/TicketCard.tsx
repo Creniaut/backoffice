@@ -21,31 +21,30 @@ const tagStyle = {
   h: "20px",
   px: "2",
   borderRadius: "full",
-  borderWidth: "1px",
-  borderColor: "app.line",
-  fontSize: "11px",
+  fontSize: "11.5px",
   lineHeight: "1",
   whiteSpace: "nowrap",
 } as const;
 
-function PriorityTag({ priority }: { priority: Priority }) {
+export function PriorityTag({ priority }: { priority: Priority }) {
   const label = PRIORITIES.find((p) => p.id === priority)?.label ?? "";
   const name = `Priorité ${label.toLowerCase()}`;
   return (
     <Flex
       {...tagStyle}
       fontWeight="600"
-      color="app.ink"
+      bg={`priority.${priority}Soft`}
+      color={`priority.${priority}`}
       aria-label={name}
       title={name}
     >
       <Box
         aria-hidden="true"
-        w="7px"
-        h="7px"
+        w="6px"
+        h="6px"
         borderRadius="full"
         flex="none"
-        bg={`priority.${priority}`}
+        bg="currentColor"
       />
       <Text as="span" aria-hidden="true">
         {label}
@@ -54,11 +53,19 @@ function PriorityTag({ priority }: { priority: Priority }) {
   );
 }
 
-function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
+export function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
   const label = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? "";
   const name = `Difficulté ${label.toLowerCase()}`;
   return (
-    <Flex {...tagStyle} aria-label={name} title={name}>
+    <Flex
+      {...tagStyle}
+      borderWidth="1px"
+      borderColor="app.line"
+      color="app.muted"
+      fontWeight="500"
+      aria-label={name}
+      title={name}
+    >
       <LuGauge aria-hidden="true" />
       <Text as="span" aria-hidden="true">
         {label}

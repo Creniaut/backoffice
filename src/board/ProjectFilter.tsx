@@ -25,7 +25,15 @@ export function ProjectFilter({
   ];
 
   return (
-    <Box overflowX="auto" maxW="full" minW="0">
+    <Box
+      overflowX="auto"
+      maxW="full"
+      minW="0"
+      css={{
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": { display: "none" },
+      }}
+    >
       <SegmentGroup.Root
         size="sm"
         aria-label="Filtrer par projet"
