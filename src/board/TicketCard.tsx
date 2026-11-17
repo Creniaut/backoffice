@@ -5,7 +5,48 @@ import { LuImage, LuSparkles } from "react-icons/lu";
 import { cardStyle } from "./cardStyle";
 import { formatRelative, linkLabel } from "./format";
 import { MemberAvatar } from "./MemberAvatar";
-import type { Member, Project, Ticket } from "./types";
+import {
+  DIFFICULTIES,
+  PRIORITIES,
+  type Difficulty,
+  type Member,
+  type Priority,
+  type Project,
+  type Ticket,
+} from "./types";
+
+function PriorityTag({ priority }: { priority: Priority }) {
+  const label = PRIORITIES.find((p) => p.id === priority)?.label ?? "";
+  return (
+    <Flex
+      align="center"
+      gap="1"
+      fontWeight="500"
+      aria-label={`Priorité ${label.toLowerCase()}`}
+    >
+      <Box
+        aria-hidden="true"
+        w="7px"
+        h="7px"
+        borderRadius="full"
+        flex="none"
+        bg={`priority.${priority}`}
+      />
+      <Text as="span" aria-hidden="true">
+        {label}
+      </Text>
+    </Flex>
+  );
+}
+
+function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
+  const label = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? "";
+  return (
+    <Text as="span" aria-label={`Difficulté ${label.toLowerCase()}`}>
+      {label}
+    </Text>
+  );
+}
 
 interface CardProps {
   ticket: Ticket;
@@ -59,6 +100,8 @@ export function CardContent({ ticket, project, assignee }: CardProps) {
         color="app.muted"
       >
         <MemberAvatar member={assignee} />
+        {ticket.priority && <PriorityTag priority={ticket.priority} />}
+        {ticket.difficulty && <DifficultyTag difficulty={ticket.difficulty} />}
         {ticket.link && <Text>{linkLabel(ticket.link)}</Text>}
         {ticket.imageCount > 0 && (
           <Flex

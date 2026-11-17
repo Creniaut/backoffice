@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import { DndContext } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
-import { members, projects, tickets } from "../test/fixtures";
+import { makeTicket, members, projects, tickets } from "../test/fixtures";
 import { renderWithProviders } from "../test/render";
 import { TicketCard } from "./TicketCard";
 import type { Ticket } from "./types";
@@ -48,6 +48,25 @@ it("shows the image count when the ticket has images", () => {
   renderCard(tickets.find((t) => t.id === 3)!);
   expect(screen.getByLabelText("2 images")).toBeInTheDocument();
   expect(screen.queryByText(/^Claude/)).not.toBeInTheDocument();
+});
+
+it("shows « Priorité haute » and « Facile » when set", () => {
+  renderCard(
+    makeTicket(20, "notia", "todo", 0, "Prioritaire", {
+      priority: "high",
+      difficulty: "easy",
+    }),
+  );
+  expect(screen.getByLabelText("Priorité haute")).toHaveTextContent("Haute");
+  expect(screen.getByLabelText("Difficulté facile")).toHaveTextContent(
+    "Facile",
+  );
+});
+
+it("shows no priority nor difficulty when unset", () => {
+  renderCard(tickets.find((t) => t.id === 1)!);
+  expect(screen.queryByLabelText(/^Priorité/)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/^Difficulté/)).not.toBeInTheDocument();
 });
 
 it("unassigned card shows the dashed « – » avatar", () => {
