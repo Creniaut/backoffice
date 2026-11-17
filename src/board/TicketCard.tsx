@@ -120,7 +120,8 @@ export function CardContent({ ticket, project, assignee }: CardProps) {
       <Flex
         align="center"
         wrap="wrap"
-        gap="1 2"
+        rowGap="1"
+        columnGap="2"
         minH="24px"
         fontSize="12px"
         color="app.muted"
