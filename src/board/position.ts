@@ -21,6 +21,16 @@ export function topPosition(tickets: Ticket[], status: Status): number {
   return positionBetween(null, column[0]?.position ?? null);
 }
 
+export function resolvePriorityDrop(
+  tickets: Ticket[],
+  activeId: number,
+  status: Status,
+): { status: Status; position: number } | null {
+  const active = tickets.find((t) => t.id === activeId);
+  if (!active || active.status === status) return null;
+  return { status, position: topPosition(tickets, status) };
+}
+
 export function resolveDrop(
   tickets: Ticket[],
   activeId: number,

@@ -2,6 +2,7 @@ import { supabase } from "../lib/supabase";
 import { makeFile } from "../test/fixtures";
 import type { FakeSupabase } from "../test/fakeSupabase";
 import {
+  createTicket,
   deleteTicket,
   fetchBoard,
   fetchImages,
@@ -81,6 +82,8 @@ it("fetchBoard maps rows to camelCase with imageCount", async () => {
         created_at: "a",
         updated_at: "b",
         last_actor: "claude",
+        priority: "high",
+        difficulty: null,
         ticket_images: [{ count: 2 }],
       },
     ]),
@@ -95,16 +98,87 @@ it("fetchBoard maps rows to camelCase with imageCount", async () => {
     lastActor: "claude",
     createdAt: "a",
     updatedAt: "b",
+    priority: "high",
+    difficulty: null,
   });
+});
+
+it("fetchBoard maps a row without the new columns to null", async () => {
+  fake.results.set("select projects", ok([]));
+  fake.results.set("select members", ok([]));
+  fake.results.set(
+    "select tickets",
+    ok([
+      {
+        id: 4,
+        project_slug: "notia",
+        title: "Ancien",
+        description: "",
+        status: "idea",
+        assignee_email: null,
+        link: null,
+        position: 0,
+        created_at: "a",
+        updated_at: "b",
+        last_actor: "claude",
+      },
+    ]),
+  );
+  const board = await fetchBoard();
+  expect(board.tickets[0]).toMatchObject({ priority: null, difficulty: null });
+});
+
+it("createTicket sends priority and difficulty", async () => {
+  fake.results.set(
+    "insert tickets",
+    ok({
+      id: 9,
+      project_slug: "notia",
+      title: "Nouveau",
+      description: "",
+      status: "todo",
+      assignee_email: null,
+      link: null,
+      position: -1,
+      created_at: "a",
+      updated_at: "b",
+      last_actor: "cb@example.com",
+      priority: "medium",
+      difficulty: "easy",
+    }),
+  );
+  const ticket = await createTicket({
+    projectSlug: "notia",
+    title: "Nouveau",
+    description: "",
+    status: "todo",
+    assigneeEmail: null,
+    position: -1,
+    priority: "medium",
+    difficulty: "easy",
+  });
+  expect(fake.payloads.get("insert tickets")).toMatchObject({
+    priority: "medium",
+    difficulty: "easy",
+  });
+  expect(ticket).toMatchObject({ priority: "medium", difficulty: "easy" });
 });
 
 it("updateTicket sends snake_case columns", async () => {
   fake.results.set("update tickets", ok([{ id: 3 }]));
-  await updateTicket(3, { status: "done", position: 0, assigneeEmail: null });
+  await updateTicket(3, {
+    status: "done",
+    position: 0,
+    assigneeEmail: null,
+    priority: "low",
+    difficulty: "hard",
+  });
   expect(fake.payloads.get("update tickets")).toEqual({
     status: "done",
     position: 0,
     assignee_email: null,
+    priority: "low",
+    difficulty: "hard",
   });
   expect(fake.calls).toEqual(["update tickets 3"]);
 });

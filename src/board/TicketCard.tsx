@@ -1,11 +1,58 @@
 import { Box, Flex, Heading, Text } from "@chakra-ui/react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { LuImage, LuSparkles } from "react-icons/lu";
+import { LuGauge, LuImage, LuSparkles } from "react-icons/lu";
 import { cardStyle } from "./cardStyle";
 import { formatRelative, linkLabel } from "./format";
 import { MemberAvatar } from "./MemberAvatar";
-import type { Member, Project, Ticket } from "./types";
+import {
+  DIFFICULTIES,
+  PRIORITIES,
+  type Difficulty,
+  type Member,
+  type Priority,
+  type Project,
+  type Ticket,
+} from "./types";
+
+function PriorityTag({ priority }: { priority: Priority }) {
+  const label = PRIORITIES.find((p) => p.id === priority)?.label ?? "";
+  const name = `Priorité ${label.toLowerCase()}`;
+  return (
+    <Flex
+      align="center"
+      gap="1"
+      fontWeight="500"
+      aria-label={name}
+      title={name}
+    >
+      <Box
+        aria-hidden="true"
+        w="7px"
+        h="7px"
+        borderRadius="full"
+        flex="none"
+        bg={`priority.${priority}`}
+      />
+      <Text as="span" aria-hidden="true">
+        {label}
+      </Text>
+    </Flex>
+  );
+}
+
+function DifficultyTag({ difficulty }: { difficulty: Difficulty }) {
+  const label = DIFFICULTIES.find((d) => d.id === difficulty)?.label ?? "";
+  const name = `Difficulté ${label.toLowerCase()}`;
+  return (
+    <Flex align="center" gap="1" aria-label={name} title={name}>
+      <LuGauge aria-hidden="true" />
+      <Text as="span" aria-hidden="true">
+        {label}
+      </Text>
+    </Flex>
+  );
+}
 
 interface CardProps {
   ticket: Ticket;
@@ -59,6 +106,8 @@ export function CardContent({ ticket, project, assignee }: CardProps) {
         color="app.muted"
       >
         <MemberAvatar member={assignee} />
+        {ticket.priority && <PriorityTag priority={ticket.priority} />}
+        {ticket.difficulty && <DifficultyTag difficulty={ticket.difficulty} />}
         {ticket.link && <Text>{linkLabel(ticket.link)}</Text>}
         {ticket.imageCount > 0 && (
           <Flex

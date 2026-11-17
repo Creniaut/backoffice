@@ -30,6 +30,8 @@ Ce repo fait évoluer le code et le schéma du tableau ; les autres projets y li
 - Titre court qui dit ce qui change. Description : le besoin et la piste en 1 à 3 phrases, puis le détail utile au travail
   en liste `- [ ]` (fichiers, réglages, cas à vérifier), cochée `- [x]` au fil du travail.
   Une petite tâche se range de préférence dans le ticket du sujet qu'elle sert.
+- Priorité et difficulté à chaque ticket créé, à revoir si le sujet change : `priority` (`high`, `medium`, `low`) dit l'urgence,
+  `difficulty` (`easy`, `medium`, `hard`) l'effort.
 - Ne jamais supprimer un ticket ni changer son responsable. Ne pas toucher à `members`, `projects` ni aux images sans demande.
 - Tableau injoignable (outils `supabase-backoffice` absents, « Needs authentication », erreur d'accès) : le dire tout de suite,
   sans passer par `DATABASE_URL` pour les tickets, et donner la marche à suivre de `README.md`, « Si le tableau ne répond pas »
@@ -37,16 +39,16 @@ Ce repo fait évoluer le code et le schéma du tableau ; les autres projets y li
 
 ```sql
 -- Tickets ouverts du projet
-select id, title, status, assignee_email from tickets
-where project_slug = 'back-office' and status <> 'done' order by status, position;
+select id, title, status, priority, difficulty, assignee_email from tickets
+where project_slug = 'back-office' and status <> 'done' order by status, priority nulls last, position;
 
 -- Un ticket parle-t-il déjà du sujet ?
 select id, title, status from tickets
 where project_slug = 'back-office' and (title ilike '%<mot>%' or description ilike '%<mot>%');
 
 -- Créer en haut de sa colonne ('idea' ou 'todo', le même aux deux endroits)
-insert into tickets (project_slug, title, description, status, position)
-values ('back-office', '<titre>', '<description>', 'idea',
+insert into tickets (project_slug, title, description, status, priority, difficulty, position)
+values ('back-office', '<titre>', '<description>', 'idea', '<high|medium|low>', '<easy|medium|hard>',
   (select coalesce(min(position), 0) - 1 from tickets where status = 'idea'));
 
 -- Compléter un ticket existant

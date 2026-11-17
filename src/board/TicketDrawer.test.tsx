@@ -116,6 +116,32 @@ it("changing « Qui s'en occupe » to « Personne » clears the assignee", async
   );
 });
 
+it("changing « Priorité » to « Haute » sends priority high", async () => {
+  renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
+  const drawer = await screen.findByRole("dialog");
+  const group = within(drawer).getByRole("radiogroup", { name: "Priorité" });
+  await userEvent.click(within(group).getByRole("radio", { name: "Haute" }));
+  await vi.waitFor(() =>
+    expect(updateTicket).toHaveBeenCalledWith(CLAUDE_TICKET_ID, {
+      priority: "high",
+    }),
+  );
+});
+
+it("changing « Difficulté » to « Difficile » sends difficulty hard", async () => {
+  renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
+  const drawer = await screen.findByRole("dialog");
+  const group = within(drawer).getByRole("radiogroup", { name: "Difficulté" });
+  await userEvent.click(
+    within(group).getByRole("radio", { name: "Difficile" }),
+  );
+  await vi.waitFor(() =>
+    expect(updateTicket).toHaveBeenCalledWith(CLAUDE_TICKET_ID, {
+      difficulty: "hard",
+    }),
+  );
+});
+
 it("clicking the current column or assignee sends nothing", async () => {
   renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
   const drawer = await screen.findByRole("dialog");

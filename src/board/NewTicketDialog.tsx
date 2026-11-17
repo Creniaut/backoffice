@@ -11,7 +11,15 @@ import {
 import { useState, type ReactNode } from "react";
 import { topPosition } from "./position";
 import { useCreateTicket } from "./queries";
-import { COLUMNS, type Board, type Status } from "./types";
+import {
+  COLUMNS,
+  DIFFICULTIES,
+  PRIORITIES,
+  type Board,
+  type Difficulty,
+  type Priority,
+  type Status,
+} from "./types";
 
 const Label = chakra("label", {
   base: { fontSize: "13px", fontWeight: "500", color: "app.muted" },
@@ -53,6 +61,8 @@ export function NewTicketDialog({
   const [status, setStatus] = useState<Status>(initialStatus);
   const [assignee, setAssignee] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<Priority | "">("");
+  const [difficulty, setDifficulty] = useState<Difficulty | "">("");
   const ready = title.trim() !== "" && project !== "";
 
   const submit = () => {
@@ -65,6 +75,8 @@ export function NewTicketDialog({
         status,
         assigneeEmail: assignee || null,
         position: topPosition(board.tickets, status),
+        priority: priority || null,
+        difficulty: difficulty || null,
       },
       { onSuccess: (ticket) => onCreated(ticket.id) },
     );
@@ -146,6 +158,44 @@ export function NewTicketDialog({
                         {board.members.map((member) => (
                           <option key={member.email} value={member.email}>
                             {member.name}
+                          </option>
+                        ))}
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </Field>
+                  <Field id="new-ticket-priority" label="Priorité">
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        id="new-ticket-priority"
+                        value={priority}
+                        onChange={(event) =>
+                          setPriority(event.target.value as Priority | "")
+                        }
+                      >
+                        <option value="">Aucune</option>
+                        {PRIORITIES.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </Field>
+                  <Field id="new-ticket-difficulty" label="Difficulté">
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        id="new-ticket-difficulty"
+                        value={difficulty}
+                        onChange={(event) =>
+                          setDifficulty(event.target.value as Difficulty | "")
+                        }
+                      >
+                        <option value="">Aucune</option>
+                        {DIFFICULTIES.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.label}
                           </option>
                         ))}
                       </NativeSelect.Field>

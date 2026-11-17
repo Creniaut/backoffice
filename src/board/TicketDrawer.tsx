@@ -17,6 +17,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LuExternalLink, LuX } from "react-icons/lu";
 import { hasFiles, isTextField } from "./dom";
 import { linkLabel } from "./format";
+import { LevelPicker } from "./LevelPicker";
 import { LinkifiedText } from "./LinkifiedText";
 import { MemberAvatar } from "./MemberAvatar";
 import { topPosition } from "./position";
@@ -26,6 +27,8 @@ import { ProjectTag } from "./TicketCard";
 import { TicketImages } from "./TicketImages";
 import {
   COLUMNS,
+  DIFFICULTIES,
+  PRIORITIES,
   type Board,
   type Member,
   type Status,
@@ -412,6 +415,24 @@ function OpenTicketDrawer({
             onChange={(status) =>
               save({ status, position: topPosition(board.tickets, status) })
             }
+          />
+        </Section>
+
+        <Section title="Priorité">
+          <LevelPicker
+            label="Priorité"
+            options={PRIORITIES}
+            value={ticket.priority}
+            onChange={(priority) => save({ priority })}
+          />
+        </Section>
+
+        <Section title="Difficulté">
+          <LevelPicker
+            label="Difficulté"
+            options={DIFFICULTIES}
+            value={ticket.difficulty}
+            onChange={(difficulty) => save({ difficulty })}
           />
         </Section>
 

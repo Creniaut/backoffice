@@ -31,6 +31,8 @@ export function makeTicket(
     updatedAt: "2026-11-10T10:00:00",
     lastActor: "cb@example.com",
     imageCount: 0,
+    priority: null,
+    difficulty: null,
     ...extra,
   };
 }

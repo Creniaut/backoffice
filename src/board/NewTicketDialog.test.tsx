@@ -114,6 +114,8 @@ it("creating inserts at the top of the column and opens the new ticket", async (
       status: "doing",
       assigneeEmail: "ec@example.com",
       position: 1,
+      priority: null,
+      difficulty: null,
     }),
   );
   await vi.waitFor(() =>
@@ -124,4 +126,30 @@ it("creating inserts at the top of the column and opens the new ticket", async (
   expect(
     await screen.findByRole("dialog", { name: "Nouveau sujet" }),
   ).toBeInTheDocument();
+});
+
+it("creating sends the chosen priority and difficulty", async () => {
+  vi.mocked(createTicket).mockResolvedValue(
+    makeTicket(43, "notia", "todo", 0, "Prioritaire"),
+  );
+  renderAt("/todo/notia");
+  await userEvent.click(
+    await screen.findByRole("button", { name: "Nouveau ticket" }),
+  );
+  const dialog = await screen.findByRole("dialog");
+  await userEvent.type(within(dialog).getByLabelText("Titre"), "Prioritaire");
+  await userEvent.selectOptions(
+    within(dialog).getByLabelText("Priorité"),
+    "high",
+  );
+  await userEvent.selectOptions(
+    within(dialog).getByLabelText("Difficulté"),
+    "hard",
+  );
+  await userEvent.click(within(dialog).getByRole("button", { name: "Créer" }));
+  await vi.waitFor(() =>
+    expect(createTicket).toHaveBeenCalledWith(
+      expect.objectContaining({ priority: "high", difficulty: "hard" }),
+    ),
+  );
 });

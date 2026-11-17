@@ -7,6 +7,22 @@ export const COLUMNS: ReadonlyArray<{ id: Status; label: string }> = [
   { id: "done", label: "Fait" },
 ];
 
+export type Priority = "high" | "medium" | "low";
+
+export const PRIORITIES: ReadonlyArray<{ id: Priority; label: string }> = [
+  { id: "high", label: "Haute" },
+  { id: "medium", label: "Moyenne" },
+  { id: "low", label: "Basse" },
+];
+
+export type Difficulty = "easy" | "medium" | "hard";
+
+export const DIFFICULTIES: ReadonlyArray<{ id: Difficulty; label: string }> = [
+  { id: "easy", label: "Facile" },
+  { id: "medium", label: "Moyenne" },
+  { id: "hard", label: "Difficile" },
+];
+
 export interface Member {
   email: string;
   name: string;
@@ -32,6 +48,8 @@ export interface Ticket {
   updatedAt: string;
   lastActor: string;
   imageCount: number;
+  priority: Priority | null;
+  difficulty: Difficulty | null;
 }
 
 export type EventKind = "created" | "moved" | "assigned" | "edited";
@@ -62,6 +80,13 @@ export interface Board {
 export type TicketPatch = Partial<
   Pick<
     Ticket,
-    "title" | "description" | "status" | "assigneeEmail" | "link" | "position"
+    | "title"
+    | "description"
+    | "status"
+    | "assigneeEmail"
+    | "link"
+    | "position"
+    | "priority"
+    | "difficulty"
   >
 >;

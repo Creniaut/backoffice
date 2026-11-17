@@ -50,6 +50,11 @@ const config = defineConfig({
           doing: { value: "oklch(0.72 0.14 75)" },
           done: { value: "oklch(0.62 0.12 150)" },
         },
+        priority: {
+          high: { value: "oklch(0.6 0.19 25)" },
+          medium: { value: "oklch(0.72 0.14 75)" },
+          low: { value: "oklch(0.7 0.01 255)" },
+        },
       },
       shadows: {
         card: tone(

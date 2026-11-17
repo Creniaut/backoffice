@@ -1,5 +1,32 @@
-import { tickets } from "../test/fixtures";
-import { positionBetween, resolveDrop, topPosition } from "./position";
+import { makeTicket, tickets } from "../test/fixtures";
+import {
+  positionBetween,
+  resolveDrop,
+  resolvePriorityDrop,
+  topPosition,
+} from "./position";
+
+describe("resolvePriorityDrop", () => {
+  it("does nothing inside the same column", () => {
+    expect(resolvePriorityDrop(tickets, 3, "todo")).toBeNull();
+  });
+
+  it("goes to the top of the whole column, other projects included", () => {
+    const board = [
+      makeTicket(1, "notia", "todo", 5, "A"),
+      makeTicket(2, "back-office", "doing", -3, "B"),
+      makeTicket(3, "notia", "doing", 0, "C"),
+    ];
+    expect(resolvePriorityDrop(board, 1, "doing")).toEqual({
+      status: "doing",
+      position: -4,
+    });
+  });
+
+  it("ignores an unknown ticket", () => {
+    expect(resolvePriorityDrop(tickets, 999, "done")).toBeNull();
+  });
+});
 
 describe("positionBetween", () => {
   it("returns 0 for an empty column", () =>
