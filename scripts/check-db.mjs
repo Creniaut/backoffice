@@ -219,6 +219,15 @@ async function run() {
     (await lastEvent(created.id)).kind === "edited",
     "pas d'événement edited",
   );
+  const beforePriority = await eventCount(created.id);
+  await client.query("update tickets set priority = 'high' where id = $1", [
+    created.id,
+  ]);
+  assert(
+    (await eventCount(created.id)) === beforePriority + 1 &&
+      (await lastEvent(created.id)).kind === "edited",
+    "un changement de priorité n'est pas inscrit comme edited",
+  );
   const before = await eventCount(created.id);
   await client.query("update tickets set position = 42 where id = $1", [
     created.id,

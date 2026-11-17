@@ -2,7 +2,9 @@ import { supabase } from "../lib/supabase";
 import { imageExtension, validateImage } from "./images";
 import type {
   Board,
+  Difficulty,
   Member,
+  Priority,
   Project,
   Status,
   Ticket,
@@ -32,6 +34,8 @@ interface TicketRow {
   created_at: string;
   updated_at: string;
   last_actor: string;
+  priority?: Priority | null;
+  difficulty?: Difficulty | null;
   ticket_images?: Array<{ count: number }>;
 }
 
@@ -76,6 +80,8 @@ function toTicket(row: TicketRow): Ticket {
     updatedAt: row.updated_at,
     lastActor: row.last_actor,
     imageCount: row.ticket_images?.[0]?.count ?? 0,
+    priority: row.priority ?? null,
+    difficulty: row.difficulty ?? null,
   };
 }
 
@@ -87,6 +93,8 @@ function toRow(patch: TicketPatch): Record<string, unknown> {
     assigneeEmail: "assignee_email",
     link: "link",
     position: "position",
+    priority: "priority",
+    difficulty: "difficulty",
   };
   return Object.fromEntries(
     Object.entries(patch).map(([key, value]) => [
@@ -127,6 +135,8 @@ export async function createTicket(input: {
   status: Status;
   assigneeEmail: string | null;
   position: number;
+  priority?: Priority | null;
+  difficulty?: Difficulty | null;
 }): Promise<Ticket> {
   const row = unwrap<TicketRow>(
     await supabase
@@ -138,6 +148,8 @@ export async function createTicket(input: {
         status: input.status,
         assignee_email: input.assigneeEmail,
         position: input.position,
+        priority: input.priority ?? null,
+        difficulty: input.difficulty ?? null,
       })
       .select(TICKET_COLUMNS)
       .single(),
