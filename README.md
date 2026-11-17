@@ -30,6 +30,7 @@ Vite + React 19 + TypeScript strict, Chakra UI v3, TanStack Query, React Router,
 - Migrations dans `supabase/migrations/`, appliquées avec `npx supabase db push --db-url "$DATABASE_URL"`. Pas de `supabase login` : son jeton couvre tout le compte.
 - Accès réservé aux e-mails de la table `members`. Ajouter un membre : `insert into members (email, name, initials) values (…);`.
 - Ajouter un projet : `insert into projects (slug, name, color) values ('mon-projet', 'Mon projet', 'oklch(0.6 0.12 300)');`. Il apparaît dans le filtre et à l'adresse `/todo/mon-projet`.
+- `tickets.priority` (`high`, `medium`, `low`) et `tickets.difficulty` (`easy`, `medium`, `hard`) sont facultatives. Le tri « Priorité » du tableau, mémorisé dans le navigateur, range les colonnes par priorité puis difficulté ; « Fait » garde les plus récents en tête.
 - L'historique (`ticket_events`) et `tickets.last_actor` sont écrits par des triggers : e-mail du membre connecté, ou `claude` pour une requête sans session (connecteur MCP).
 
 ## Mise en ligne
@@ -69,6 +70,8 @@ Slug de ce projet : `<slug>`. Tableau : https://todo.notias.fr/todo/<slug> (repo
 - Titre court qui dit ce qui change. Description : le besoin et la piste en 1 à 3 phrases, puis le détail utile au travail
   en liste `- [ ]` (fichiers, réglages, cas à vérifier), cochée `- [x]` au fil du travail.
   Une petite tâche se range de préférence dans le ticket du sujet qu'elle sert.
+- Priorité et difficulté à chaque ticket créé, à revoir si le sujet change : `priority` (`high`, `medium`, `low`) dit l'urgence,
+  `difficulty` (`easy`, `medium`, `hard`) l'effort.
 - Ne jamais supprimer un ticket ni changer son responsable. Ne pas toucher à `members`, `projects` ni aux images sans demande.
 - Ne jamais modifier le schéma depuis ce repo : les migrations vivent dans le repo du back-office.
 - Tableau injoignable : suivre « Si le tableau ne répond pas » ci-dessous.
@@ -90,16 +93,16 @@ En attendant, continuer le travail et lister en fin de réponse les tickets à c
 
 ```sql
 -- Tickets ouverts du projet
-select id, title, status, assignee_email from tickets
-where project_slug = '<slug>' and status <> 'done' order by status, position;
+select id, title, status, priority, difficulty, assignee_email from tickets
+where project_slug = '<slug>' and status <> 'done' order by status, priority nulls last, position;
 
 -- Un ticket parle-t-il déjà du sujet ?
 select id, title, status from tickets
 where project_slug = '<slug>' and (title ilike '%<mot>%' or description ilike '%<mot>%');
 
 -- Créer en haut de sa colonne ('idea' ou 'todo', le même aux deux endroits)
-insert into tickets (project_slug, title, description, status, position)
-values ('<slug>', '<titre>', '<description>', 'idea',
+insert into tickets (project_slug, title, description, status, priority, difficulty, position)
+values ('<slug>', '<titre>', '<description>', 'idea', 'medium', 'easy',
   (select coalesce(min(position), 0) - 1 from tickets where status = 'idea'));
 
 -- Compléter un ticket existant
