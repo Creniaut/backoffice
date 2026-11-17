@@ -14,11 +14,20 @@ import { LuPlus } from "react-icons/lu";
 import { Link as RouterLink, useParams, useSearchParams } from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
+import {
+  hasFilters,
+  matchesFilters,
+  NO_FILTERS,
+  readFilters,
+  writeFilters,
+  type BoardFilters,
+} from "./filters";
+import { FilterMenus } from "./FilterMenus";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
 import { useBoard } from "./queries";
 import { readSortMode, writeSortMode, type SortMode } from "./sort";
-import { SortToggle } from "./SortToggle";
+import { SortMenu } from "./SortMenu";
 import { useBlockFileNavigation } from "./useBlockFileNavigation";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { TicketDrawer } from "./TicketDrawer";
@@ -31,6 +40,7 @@ export function BoardPage() {
   useBlockFileNavigation();
   const [creating, setCreating] = useState<Status | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
+  const [filters, setFilters] = useState<BoardFilters>(readFilters);
   const projectSlug = project ?? null;
   const ticketParam = searchParams.get("ticket");
   const ticketId = ticketParam === null ? null : Number(ticketParam);
@@ -94,7 +104,13 @@ export function BoardPage() {
     );
   }
 
-  const visible = ticketsForProject(data.tickets, projectSlug);
+  const inProject = ticketsForProject(data.tickets, projectSlug);
+  const visible = inProject.filter((t) => matchesFilters(t, filters));
+  const filtered = hasFilters(filters);
+  const changeFilters = (next: BoardFilters) => {
+    setFilters(next);
+    writeFilters(next);
+  };
 
   return (
     <>
@@ -107,13 +123,33 @@ export function BoardPage() {
           tickets={data.tickets}
           current={projectSlug}
         />
-        <SortToggle
-          value={sortMode}
-          onChange={(mode) => {
-            setSortMode(mode);
-            writeSortMode(mode);
-          }}
-        />
+        <Flex wrap="wrap" align="center" gap="2">
+          <FilterMenus
+            tickets={inProject}
+            filters={filters}
+            onChange={changeFilters}
+          />
+          <Box aria-hidden="true" w="1px" h="20px" mx="1" bg="app.line" />
+          <SortMenu
+            value={sortMode}
+            onChange={(mode) => {
+              setSortMode(mode);
+              writeSortMode(mode);
+            }}
+          />
+          {filtered && (
+            <Button
+              size="sm"
+              variant="ghost"
+              color="app.muted"
+              fontWeight="400"
+              _hover={{ color: "app.ink", bg: "app.lane" }}
+              onClick={() => changeFilters(NO_FILTERS)}
+            >
+              Effacer les filtres
+            </Button>
+          )}
+        </Flex>
         <Button
           ms="auto"
           size="sm"
@@ -136,6 +172,7 @@ export function BoardPage() {
           tickets={visible}
           selectedId={ticket?.id ?? null}
           sortMode={sortMode}
+          filtered={filtered}
           onOpen={(id) => setSearchParams({ ticket: String(id) })}
           onAdd={setCreating}
         />

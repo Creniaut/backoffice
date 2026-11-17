@@ -7,7 +7,7 @@ Lire aussi `README.md` et la conception `docs/superpowers/specs/2026-11-13-table
 - Réponses en français ; code et identifiants en anglais ; **pas de commentaires dans le code** ; textes de l'interface en français.
 - TypeScript strict, pas de `any`. `npm run lint`, `npm run check-types` et `npm test` doivent passer (CI).
 - Toute requête Supabase passe par `src/board/api.ts` ; les composants n'importent pas le client Supabase (sauf `src/auth/`).
-- Couleurs et polices : tokens du thème (`app.*`, `status.*`) dans `src/theme.ts`, tirés de la maquette `docs/maquette-tableau.html`.
+- Couleurs et polices : tokens du thème (`app.*`, `status.*`) dans `src/theme.ts`, tirés des maquettes `docs/maquette-tableau.html` et `docs/maquette-filtres.html`.
 - Évolution de la base : nouvelle migration dans `supabase/migrations/`, relue, puis `npx supabase db push --db-url "$DATABASE_URL"` et `npm run check:db`.
 - Un plan d'implémentation (`docs/superpowers/plans/`) se supprime dans la PR qui le termine ; la spec reste comme référence.
 

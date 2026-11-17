@@ -49,6 +49,39 @@ const chip = async (name: RegExp) =>
 const titles = () =>
   screen.queryAllByRole("heading", { level: 3 }).map((h) => h.textContent);
 
+const laneTitles = (lane: string) =>
+  within(screen.getByRole("region", { name: lane }))
+    .queryAllByRole("heading", { level: 3 })
+    .map((h) => h.textContent);
+
+const sortBy = async (name: string) => {
+  await userEvent.click(screen.getByRole("button", { name: /^Tri :/ }));
+  await userEvent.click(await screen.findByRole("menuitemradio", { name }));
+};
+
+const check = async (menu: RegExp, option: RegExp) => {
+  await userEvent.click(screen.getByRole("button", { name: menu }));
+  await userEvent.click(
+    await screen.findByRole("menuitemcheckbox", { name: option }),
+  );
+  await userEvent.keyboard("{Escape}");
+};
+
+const leveled = [
+  makeTicket(61, "notia", "todo", 0, "Haute facile", {
+    priority: "high",
+    difficulty: "easy",
+  }),
+  makeTicket(62, "notia", "todo", 1, "Basse difficile", {
+    priority: "low",
+    difficulty: "hard",
+  }),
+  makeTicket(63, "notia", "todo", 2, "Sans niveau"),
+  makeTicket(64, "back-office", "todo", 3, "Haute ailleurs", {
+    priority: "high",
+  }),
+];
+
 beforeEach(() => {
   vi.mocked(fetchBoard).mockResolvedValue({ projects, members, tickets });
 });
@@ -104,11 +137,145 @@ it("/todo/inconnu shows « Projet inconnu » and a « Voir tous les projets » l
   ).toHaveAttribute("href", "/todo");
 });
 
-it("the toolbar shows no ticket count nor « Trier » label", async () => {
+it("the toolbar shows no ticket count and reads « Tri : Manuel »", async () => {
   renderAt("/todo/notia");
-  await screen.findByRole("radiogroup", { name: "Trier" });
+  expect(
+    await screen.findByRole("button", { name: /^Tri : Manuel/ }),
+  ).toBeInTheDocument();
   expect(screen.queryByText(/tickets · /)).not.toBeInTheDocument();
-  expect(screen.queryByText("Trier")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Effacer les filtres" }),
+  ).not.toBeInTheDocument();
+});
+
+it("« Priorité » keeps the checked levels, « Sans priorité » included, and remembers them", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  const { unmount } = renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Sans niveau" });
+  await userEvent.click(screen.getByRole("button", { name: /^Priorité/ }));
+  await userEvent.click(
+    await screen.findByRole("menuitemcheckbox", { name: /^Priorité haute/ }),
+  );
+  await userEvent.click(
+    screen.getByRole("menuitemcheckbox", { name: /^Sans priorité/ }),
+  );
+  await userEvent.keyboard("{Escape}");
+  const expected = ["Haute facile", "Sans niveau", "Haute ailleurs"];
+  expect(laneTitles("À faire")).toEqual(expected);
+  expect(screen.getByRole("button", { name: /^Priorité/ })).toHaveTextContent(
+    "2",
+  );
+  expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
+    priorities: ["high", "none"],
+    difficulties: [],
+  });
+
+  unmount();
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Sans niveau" });
+  expect(laneTitles("À faire")).toEqual(expected);
+});
+
+it("« Difficulté » narrows what « Priorité » keeps", async () => {
+  localStorage.setItem(
+    "board-filters",
+    JSON.stringify({ priorities: ["high"], difficulties: [] }),
+  );
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Haute ailleurs" });
+  await check(/^Difficulté/, /^Difficulté facile/);
+  expect(laneTitles("À faire")).toEqual(["Haute facile"]);
+});
+
+it("the menus count the tickets of the selected project", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  renderAt("/todo/notia");
+  await screen.findByRole("heading", { level: 3, name: "Sans niveau" });
+  await userEvent.click(screen.getByRole("button", { name: /^Priorité/ }));
+  const high = await screen.findByRole("menuitemcheckbox", {
+    name: /^Priorité haute/,
+  });
+  expect(within(high).getByText("1")).toBeInTheDocument();
+});
+
+it("« Effacer les filtres » shows every ticket again", async () => {
+  localStorage.setItem(
+    "board-filters",
+    JSON.stringify({ priorities: ["low"], difficulties: ["hard"] }),
+  );
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Basse difficile" });
+  expect(laneTitles("À faire")).toEqual(["Basse difficile"]);
+  await userEvent.click(
+    screen.getByRole("button", { name: "Effacer les filtres" }),
+  );
+  expect(laneTitles("À faire")).toHaveLength(leveled.length);
+  expect(
+    screen.queryByRole("button", { name: "Effacer les filtres" }),
+  ).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
+    priorities: [],
+    difficulties: [],
+  });
+});
+
+it("« Tout afficher » clears its own menu and keeps the other filter", async () => {
+  localStorage.setItem(
+    "board-filters",
+    JSON.stringify({ priorities: ["low"], difficulties: ["none"] }),
+  );
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  renderAt("/todo");
+  await screen.findByRole("region", { name: "À faire" });
+  await userEvent.click(screen.getByRole("button", { name: /^Priorité/ }));
+  await userEvent.click(
+    await screen.findByRole("menuitem", { name: "Tout afficher" }),
+  );
+  expect(laneTitles("À faire")).toEqual(["Sans niveau", "Haute ailleurs"]);
+  expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
+    priorities: [],
+    difficulties: ["none"],
+  });
+});
+
+it("a column the filters empty says so", async () => {
+  localStorage.setItem(
+    "board-filters",
+    JSON.stringify({ priorities: ["medium"], difficulties: [] }),
+  );
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: leveled,
+  });
+  renderAt("/todo");
+  const lane = await screen.findByRole("region", { name: "À faire" });
+  expect(
+    within(lane).getByText("Aucun ticket pour ces filtres."),
+  ).toBeInTheDocument();
+  expect(within(lane).queryByText("Aucun ticket ici.")).not.toBeInTheDocument();
 });
 
 it("« Difficulté » ranks cards by difficulty, then priority", async () => {
@@ -130,17 +297,16 @@ it("« Difficulté » ranks cards by difficulty, then priority", async () => {
   });
   renderAt("/todo");
   await screen.findByRole("heading", { level: 3, name: "Difficile" });
-  await userEvent.click(
-    within(screen.getByRole("radiogroup", { name: "Trier" })).getByRole(
-      "radio",
-      { name: "Difficulté" },
-    ),
-  );
+  await sortBy("Difficulté");
+  expect(laneTitles("À faire")).toEqual([
+    "Facile haute",
+    "Facile basse",
+    "Difficile",
+    "Sans difficulté",
+  ]);
   expect(
-    within(screen.getByRole("region", { name: "À faire" }))
-      .getAllByRole("heading", { level: 3 })
-      .map((h) => h.textContent),
-  ).toEqual(["Facile haute", "Facile basse", "Difficile", "Sans difficulté"]);
+    screen.getByRole("button", { name: /^Tri : Difficulté/ }),
+  ).toBeInTheDocument();
   expect(localStorage.getItem("board-sort")).toBe("difficulty");
 });
 
@@ -193,7 +359,7 @@ it("cards sit in their column, sorted by position", async () => {
   ]);
 });
 
-it("« Trier : Priorité » ranks cards by priority and is remembered", async () => {
+it("« Tri : Priorité » ranks cards by priority and is remembered", async () => {
   vi.mocked(fetchBoard).mockResolvedValue({
     projects,
     members,
@@ -203,27 +369,18 @@ it("« Trier : Priorité » ranks cards by priority and is remembered", async ()
       makeTicket(33, "notia", "todo", 2, "Haute", { priority: "high" }),
     ],
   });
-  const laneTitles = () =>
-    within(screen.getByRole("region", { name: "À faire" }))
-      .getAllByRole("heading", { level: 3 })
-      .map((h) => h.textContent);
   const { unmount } = renderAt("/todo");
   await screen.findByRole("heading", { level: 3, name: "Haute" });
-  expect(laneTitles()).toEqual(["Basse", "Sans priorité", "Haute"]);
+  expect(laneTitles("À faire")).toEqual(["Basse", "Sans priorité", "Haute"]);
 
-  await userEvent.click(
-    within(screen.getByRole("radiogroup", { name: "Trier" })).getByRole(
-      "radio",
-      { name: "Priorité" },
-    ),
-  );
-  expect(laneTitles()).toEqual(["Haute", "Basse", "Sans priorité"]);
+  await sortBy("Priorité");
+  expect(laneTitles("À faire")).toEqual(["Haute", "Basse", "Sans priorité"]);
   expect(localStorage.getItem("board-sort")).toBe("priority");
 
   unmount();
   renderAt("/todo");
   await screen.findByRole("heading", { level: 3, name: "Haute" });
-  expect(laneTitles()).toEqual(["Haute", "Basse", "Sans priorité"]);
+  expect(laneTitles("À faire")).toEqual(["Haute", "Basse", "Sans priorité"]);
 });
 
 it("« Fait » keeps the most recent first in priority mode", async () => {

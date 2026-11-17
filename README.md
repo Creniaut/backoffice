@@ -30,7 +30,7 @@ Vite + React 19 + TypeScript strict, Chakra UI v3, TanStack Query, React Router,
 - Migrations dans `supabase/migrations/`, appliquées par la CI à chaque push sur `main` (voir « Mise en ligne ») ; à la main si besoin : `npx supabase db push --db-url "$DATABASE_URL"`. Pas de `supabase login` : son jeton couvre tout le compte.
 - Accès réservé aux e-mails de la table `members`. Ajouter un membre : `insert into members (email, name, initials) values (…);`.
 - Ajouter un projet : `insert into projects (slug, name, color) values ('mon-projet', 'Mon projet', 'oklch(0.6 0.12 300)');`. Il apparaît dans le filtre et à l'adresse `/todo/mon-projet`.
-- `tickets.priority` (`high`, `medium`, `low`) et `tickets.difficulty` (`easy`, `medium`, `hard`) sont facultatives. Le tri du tableau (« Manuel », « Priorité » ou « Difficulté »), mémorisé dans le navigateur, range les colonnes par priorité puis difficulté, ou par difficulté puis priorité ; « Fait » garde les plus récents en tête.
+- `tickets.priority` (`high`, `medium`, `low`) et `tickets.difficulty` (`easy`, `medium`, `hard`) sont facultatives. Le tri du tableau (« Manuel », « Priorité » ou « Difficulté »), mémorisé dans le navigateur, range les colonnes par priorité puis difficulté, ou par difficulté puis priorité ; « Fait » garde les plus récents en tête. Les menus « Priorité » et « Difficulté » de la barre d'outils filtrent les cartes (cases à cocher, « Sans priorité » et « Sans difficulté » compris), eux aussi mémorisés dans le navigateur ; aucune case cochée = pas de filtre.
 - L'historique (`ticket_events`) et `tickets.last_actor` sont écrits par des triggers : e-mail du membre connecté, ou `claude` pour une requête sans session (connecteur MCP).
 
 ## Mise en ligne

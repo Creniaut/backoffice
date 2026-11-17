@@ -41,6 +41,7 @@ interface ColumnsProps {
   tickets: Ticket[];
   selectedId: number | null;
   sortMode: SortMode;
+  filtered: boolean;
   onOpen: (id: number) => void;
   onAdd: (status: Status) => void;
 }
@@ -60,6 +61,7 @@ function Lane({
   tickets,
   selectedId,
   shownOnPhone,
+  filtered,
   onOpen,
   onAdd,
 }: {
@@ -69,6 +71,7 @@ function Lane({
   tickets: Ticket[];
   selectedId: number | null;
   shownOnPhone: boolean;
+  filtered: boolean;
   onOpen: (id: number) => void;
   onAdd: (status: Status) => void;
 }) {
@@ -165,24 +168,30 @@ function Lane({
           fontSize="13px"
           color="app.muted"
         >
-          <Text>Aucun ticket ici.</Text>
-          <Text>
-            <Button
-              variant="plain"
-              size="xs"
-              h="auto"
-              minW="0"
-              p="0"
-              fontSize="13px"
-              fontWeight="600"
-              color="app.accent"
-              verticalAlign="baseline"
-              onClick={() => onAdd(status)}
-            >
-              Ajouter
-            </Button>{" "}
-            ou glisser une carte.
-          </Text>
+          {filtered ? (
+            <Text>Aucun ticket pour ces filtres.</Text>
+          ) : (
+            <>
+              <Text>Aucun ticket ici.</Text>
+              <Text>
+                <Button
+                  variant="plain"
+                  size="xs"
+                  h="auto"
+                  minW="0"
+                  p="0"
+                  fontSize="13px"
+                  fontWeight="600"
+                  color="app.accent"
+                  verticalAlign="baseline"
+                  onClick={() => onAdd(status)}
+                >
+                  Ajouter
+                </Button>{" "}
+                ou glisser une carte.
+              </Text>
+            </>
+          )}
         </Stack>
       )}
     </Box>
@@ -238,6 +247,7 @@ export function BoardColumns({
   tickets,
   selectedId,
   sortMode,
+  filtered,
   onOpen,
   onAdd,
 }: ColumnsProps) {
@@ -307,6 +317,7 @@ export function BoardColumns({
               )}
               selectedId={selectedId}
               shownOnPhone={column.id === phoneColumn}
+              filtered={filtered}
               onOpen={onOpen}
               onAdd={onAdd}
             />
