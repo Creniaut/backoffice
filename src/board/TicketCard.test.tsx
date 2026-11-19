@@ -87,3 +87,8 @@ it("unassigned card shows the dashed « – » avatar", () => {
   renderCard(tickets.find((t) => t.id === 1)!);
   expect(screen.getByText("–")).toHaveAttribute("title", "Personne");
 });
+
+it("shows the ticket number", () => {
+  renderCard(tickets.find((t) => t.id === 7)!);
+  expect(screen.getByText("#7")).toHaveAttribute("title", "Ticket n° 7");
+});

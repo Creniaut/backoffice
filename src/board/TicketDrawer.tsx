@@ -23,7 +23,7 @@ import { MemberAvatar } from "./MemberAvatar";
 import { topPosition } from "./position";
 import { useDeleteTicket, useUpdateTicket } from "./queries";
 import { TicketHistory } from "./TicketHistory";
-import { ProjectTag } from "./TicketCard";
+import { ProjectTag, TicketNumber } from "./TicketCard";
 import { TicketImages } from "./TicketImages";
 import {
   COLUMNS,
@@ -372,7 +372,10 @@ function OpenTicketDrawer({
       }}
     >
       <Flex align="center" justify="space-between" px="5" pt="3" pb="1">
-        <ProjectTag project={project} />
+        <Flex align="center" gap="2">
+          <ProjectTag project={project} />
+          <TicketNumber id={ticket.id} />
+        </Flex>
         <IconButton
           aria-label="Fermer le détail"
           variant="ghost"
