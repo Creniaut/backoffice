@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, type ReactNode } from "react";
 import { topPosition } from "./position";
+import { activeProjects } from "./projects";
 import { useCreateTicket } from "./queries";
 import {
   COLUMNS,
@@ -120,7 +121,7 @@ export function NewTicketDialog({
                         onChange={(event) => setProject(event.target.value)}
                       >
                         <option value="">Choisir un projet</option>
-                        {board.projects.map((p) => (
+                        {activeProjects(board.projects).map((p) => (
                           <option key={p.slug} value={p.slug}>
                             {p.name}
                           </option>

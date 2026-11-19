@@ -11,7 +11,12 @@ import {
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { LuPlus } from "react-icons/lu";
-import { Link as RouterLink, useParams, useSearchParams } from "react-router";
+import {
+  Navigate,
+  Link as RouterLink,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
 import {
@@ -25,6 +30,7 @@ import {
 import { FilterMenus } from "./FilterMenus";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
+import { activeProjects, activeTickets, archivedProjects } from "./projects";
 import { useBoard } from "./queries";
 import { readSortMode, writeSortMode, type SortMode } from "./sort";
 import { SortMenu } from "./SortMenu";
@@ -87,6 +93,15 @@ export function BoardPage() {
   }
 
   const data = board.data;
+  const shownProjects = activeProjects(data.projects);
+  const shownTickets = activeTickets(data.tickets, data.projects);
+
+  if (
+    projectSlug &&
+    archivedProjects(data.projects).some((p) => p.slug === projectSlug)
+  ) {
+    return <Navigate to="/todo" replace />;
+  }
 
   if (projectSlug && !data.projects.some((p) => p.slug === projectSlug)) {
     return (
@@ -104,7 +119,7 @@ export function BoardPage() {
     );
   }
 
-  const inProject = ticketsForProject(data.tickets, projectSlug);
+  const inProject = ticketsForProject(shownTickets, projectSlug);
   const visible = inProject.filter((t) => matchesFilters(t, filters));
   const filtered = hasFilters(filters);
   const changeFilters = (next: BoardFilters) => {
@@ -127,8 +142,8 @@ export function BoardPage() {
           Tableau
         </Heading>
         <ProjectFilter
-          projects={data.projects}
-          tickets={data.tickets}
+          projects={shownProjects}
+          tickets={shownTickets}
           current={projectSlug}
         />
         <Flex wrap="wrap" align="center" gap="2">
