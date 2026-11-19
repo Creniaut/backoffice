@@ -33,6 +33,7 @@ export interface Project {
   slug: string;
   name: string;
   color: string;
+  archivedAt: string | null;
 }
 
 export interface Ticket {

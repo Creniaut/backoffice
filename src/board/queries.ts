@@ -6,14 +6,17 @@ import {
 } from "@tanstack/react-query";
 import { toaster } from "../components/toaster";
 import {
+  createProject,
   createTicket,
   deleteImage,
   deleteTicket,
   fetchBoard,
   fetchEvents,
   fetchImages,
+  updateProject,
   updateTicket,
   uploadImage,
+  type ProjectPatch,
 } from "./api";
 import type { Board, TicketImage, TicketPatch } from "./types";
 
@@ -79,6 +82,25 @@ export function useCreateTicket() {
       }
     },
     onError: () => fail("Ticket non créé"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
+  });
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof createProject>[0]) =>
+      createProject(input),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
+  });
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, patch }: { slug: string; patch: ProjectPatch }) =>
+      updateProject(slug, patch),
+    onError: () => fail("Projet non enregistré"),
     onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
   });
 }

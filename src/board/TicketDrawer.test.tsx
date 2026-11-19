@@ -21,6 +21,8 @@ import {
 
 vi.mock("./api", () => ({
   fetchBoard: vi.fn(),
+  createProject: vi.fn(),
+  updateProject: vi.fn(),
   fetchEvents: vi.fn(),
   fetchImages: vi.fn(),
   updateTicket: vi.fn(),

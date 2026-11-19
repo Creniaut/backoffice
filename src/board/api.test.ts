@@ -2,14 +2,17 @@ import { supabase } from "../lib/supabase";
 import { makeFile } from "../test/fixtures";
 import type { FakeSupabase } from "../test/fakeSupabase";
 import {
+  createProject,
   createTicket,
   deleteTicket,
   fetchBoard,
   fetchImages,
   fetchIsMember,
+  updateProject,
   updateTicket,
   uploadImage,
 } from "./api";
+import { PROJECT_EXISTS } from "./projects";
 
 vi.mock("../lib/supabase", async () => {
   const { createFakeSupabase } = await import("../test/fakeSupabase");
@@ -222,4 +225,84 @@ it("a Supabase error is thrown with its message", async () => {
     error: { message: "JWT expired" },
   });
   await expect(fetchBoard()).rejects.toThrow("JWT expired");
+});
+
+it("fetchBoard maps archived_at to archivedAt", async () => {
+  fake.results.set(
+    "select projects",
+    ok([
+      { slug: "notia", name: "Notia", color: "c", archived_at: null },
+      {
+        slug: "old",
+        name: "Old",
+        color: "d",
+        archived_at: "2026-11-19T10:00:00Z",
+      },
+    ]),
+  );
+  fake.results.set("select members", ok([]));
+  fake.results.set("select tickets", ok([]));
+  const board = await fetchBoard();
+  expect(board.projects).toEqual([
+    { slug: "notia", name: "Notia", color: "c", archivedAt: null },
+    {
+      slug: "old",
+      name: "Old",
+      color: "d",
+      archivedAt: "2026-11-19T10:00:00Z",
+    },
+  ]);
+});
+
+it("createProject inserts slug, name and color", async () => {
+  await createProject({ slug: "outil", name: "Outil", color: "c" });
+  expect(fake.calls).toEqual(["insert projects"]);
+  expect(fake.payloads.get("insert projects")).toEqual({
+    slug: "outil",
+    name: "Outil",
+    color: "c",
+  });
+});
+
+it("createProject turns a duplicate slug into PROJECT_EXISTS", async () => {
+  fake.results.set("insert projects", {
+    data: null,
+    error: { message: "duplicate key", code: "23505" },
+  });
+  await expect(
+    createProject({ slug: "notia", name: "Notia", color: "c" }),
+  ).rejects.toThrow(PROJECT_EXISTS);
+});
+
+it("createProject keeps other errors as they are", async () => {
+  fake.results.set("insert projects", {
+    data: null,
+    error: { message: "permission denied", code: "42501" },
+  });
+  await expect(
+    createProject({ slug: "x", name: "X", color: "c" }),
+  ).rejects.toThrow("permission denied");
+});
+
+it("updateProject maps archivedAt to archived_at", async () => {
+  fake.results.set("update projects", ok([{ slug: "notia" }]));
+  await updateProject("notia", { archivedAt: null });
+  expect(fake.calls).toEqual(["update projects notia"]);
+  expect(fake.payloads.get("update projects")).toEqual({ archived_at: null });
+});
+
+it("updateProject sends name and color", async () => {
+  fake.results.set("update projects", ok([{ slug: "notia" }]));
+  await updateProject("notia", { name: "Notia 2", color: "d" });
+  expect(fake.payloads.get("update projects")).toEqual({
+    name: "Notia 2",
+    color: "d",
+  });
+});
+
+it("updateProject fails when no row changed", async () => {
+  fake.results.set("update projects", ok([]));
+  await expect(updateProject("notia", { name: "N" })).rejects.toThrow(
+    "Aucune ligne modifiée",
+  );
 });

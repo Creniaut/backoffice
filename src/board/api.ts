@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { imageExtension, validateImage } from "./images";
+import { PROJECT_EXISTS } from "./projects";
 import type {
   Board,
   Difficulty,
@@ -17,9 +18,24 @@ const BUCKET = "ticket-images";
 const SIGNED_URL_SECONDS = 3600;
 const TICKET_COLUMNS = "*, ticket_images(count)";
 
+const UNIQUE_VIOLATION = "23505";
+
 interface Response<T> {
   data: T | null;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
+}
+
+interface ProjectRow {
+  slug: string;
+  name: string;
+  color: string;
+  archived_at?: string | null;
+}
+
+export interface ProjectPatch {
+  name?: string;
+  color?: string;
+  archivedAt?: string | null;
 }
 
 interface TicketRow {
@@ -106,15 +122,60 @@ function toRow(patch: TicketPatch): Record<string, unknown> {
 
 export async function fetchBoard(): Promise<Board> {
   const [projects, members, tickets] = await Promise.all([
-    supabase.from("projects").select("slug, name, color").order("name"),
+    supabase
+      .from("projects")
+      .select("slug, name, color, archived_at")
+      .order("name"),
     supabase.from("members").select("email, name, initials").order("name"),
     supabase.from("tickets").select(TICKET_COLUMNS).order("position"),
   ]);
   return {
-    projects: unwrap<Project[]>(projects) ?? [],
+    projects: (unwrap<ProjectRow[]>(projects) ?? []).map(toProject),
     members: unwrap<Member[]>(members) ?? [],
     tickets: (unwrap<TicketRow[]>(tickets) ?? []).map(toTicket),
   };
+}
+
+function toProject(row: ProjectRow): Project {
+  return {
+    slug: row.slug,
+    name: row.name,
+    color: row.color,
+    archivedAt: row.archived_at ?? null,
+  };
+}
+
+export async function createProject(input: {
+  slug: string;
+  name: string;
+  color: string;
+}): Promise<void> {
+  const { error } = await supabase.from("projects").insert({
+    slug: input.slug,
+    name: input.name,
+    color: input.color,
+  });
+  if (error?.code === UNIQUE_VIOLATION) throw new Error(PROJECT_EXISTS);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateProject(
+  slug: string,
+  patch: ProjectPatch,
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name;
+  if (patch.color !== undefined) row.color = patch.color;
+  if (patch.archivedAt !== undefined) row.archived_at = patch.archivedAt;
+  ensureRows(
+    unwrap(
+      await supabase
+        .from("projects")
+        .update(row)
+        .eq("slug", slug)
+        .select("slug"),
+    ),
+  );
 }
 
 export async function fetchIsMember(email: string): Promise<boolean> {

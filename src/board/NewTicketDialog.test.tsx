@@ -8,6 +8,8 @@ import { createTicket, fetchBoard } from "./api";
 
 vi.mock("./api", () => ({
   fetchBoard: vi.fn(),
+  createProject: vi.fn(),
+  updateProject: vi.fn(),
   fetchEvents: vi.fn().mockResolvedValue([]),
   fetchImages: vi.fn().mockResolvedValue([]),
   createTicket: vi.fn(),
@@ -152,4 +154,23 @@ it("creating sends the chosen priority and difficulty", async () => {
       expect.objectContaining({ priority: "high", difficulty: "hard" }),
     ),
   );
+});
+
+it("« Projet » does not list archived projects", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects: projects.map((p) =>
+      p.slug === "notia" ? { ...p, archivedAt: "2026-11-19T10:00:00Z" } : p,
+    ),
+    members,
+    tickets,
+  });
+  renderAt("/todo");
+  await userEvent.click(
+    await screen.findByRole("button", { name: "Nouveau ticket" }),
+  );
+  const dialog = await screen.findByRole("dialog");
+  const options = within(within(dialog).getByLabelText("Projet"))
+    .getAllByRole("option")
+    .map((o) => o.getAttribute("value"));
+  expect(options).toEqual(["", "back-office"]);
 });

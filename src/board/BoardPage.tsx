@@ -10,8 +10,13 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuPlus } from "react-icons/lu";
-import { Link as RouterLink, useParams, useSearchParams } from "react-router";
+import { LuPlus, LuSettings2 } from "react-icons/lu";
+import {
+  Link as RouterLink,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { toaster } from "../components/toaster";
 import { BoardColumns } from "./BoardColumns";
 import {
@@ -25,6 +30,8 @@ import {
 import { FilterMenus } from "./FilterMenus";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
+import { ProjectsDialog } from "./ProjectsDialog";
+import { activeProjects, activeTickets, archivedProjects } from "./projects";
 import { useBoard } from "./queries";
 import { readSortMode, writeSortMode, type SortMode } from "./sort";
 import { SortMenu } from "./SortMenu";
@@ -38,7 +45,9 @@ export function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const board = useBoard();
   useBlockFileNavigation();
+  const navigate = useNavigate();
   const [creating, setCreating] = useState<Status | null>(null);
+  const [managing, setManaging] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
   const [filters, setFilters] = useState<BoardFilters>(readFilters);
   const projectSlug = project ?? null;
@@ -57,6 +66,23 @@ export function BoardPage() {
       },
       { replace: true },
     );
+
+  const archivedCurrent =
+    projectSlug !== null &&
+    (board.data
+      ? archivedProjects(board.data.projects).some(
+          (p) => p.slug === projectSlug,
+        )
+      : false);
+  useEffect(() => {
+    if (!archivedCurrent) return;
+    navigate(
+      { pathname: "/todo", search: searchParams.toString() },
+      {
+        replace: true,
+      },
+    );
+  });
 
   const missingTicket = ticketId !== null && board.isSuccess && ticket === null;
   useEffect(() => {
@@ -87,15 +113,19 @@ export function BoardPage() {
   }
 
   const data = board.data;
+  const shownProjects = activeProjects(data.projects);
+  const shownTickets = activeTickets(data.tickets, data.projects);
 
-  if (projectSlug && !data.projects.some((p) => p.slug === projectSlug)) {
+  const viewSlug = archivedCurrent ? null : projectSlug;
+
+  if (viewSlug && !data.projects.some((p) => p.slug === viewSlug)) {
     return (
       <Center flex="1">
         <Stack align="center" gap="2">
           <Text fontFamily="heading" fontWeight="700" fontSize="xl">
             Projet inconnu
           </Text>
-          <Text color="app.muted">{`Aucun projet ne s'appelle « ${projectSlug} ».`}</Text>
+          <Text color="app.muted">{`Aucun projet ne s'appelle « ${viewSlug} ».`}</Text>
           <Link asChild color="app.accent" fontWeight="500">
             <RouterLink to="/todo">Voir tous les projets</RouterLink>
           </Link>
@@ -104,7 +134,7 @@ export function BoardPage() {
     );
   }
 
-  const inProject = ticketsForProject(data.tickets, projectSlug);
+  const inProject = ticketsForProject(shownTickets, viewSlug);
   const visible = inProject.filter((t) => matchesFilters(t, filters));
   const filtered = hasFilters(filters);
   const changeFilters = (next: BoardFilters) => {
@@ -126,11 +156,28 @@ export function BoardPage() {
         <Heading as="h1" srOnly>
           Tableau
         </Heading>
-        <ProjectFilter
-          projects={data.projects}
-          tickets={data.tickets}
-          current={projectSlug}
-        />
+        <Flex align="center" gap="1" minW="0" maxW="full">
+          <ProjectFilter
+            projects={shownProjects}
+            tickets={shownTickets}
+            current={viewSlug}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            flexShrink="0"
+            aria-label="Gérer les projets"
+            color="app.muted"
+            fontWeight="400"
+            _hover={{ color: "app.ink", bg: "app.lane" }}
+            onClick={() => setManaging(true)}
+          >
+            <LuSettings2 aria-hidden="true" />
+            <Box as="span" hideBelow="md">
+              Projets
+            </Box>
+          </Button>
+        </Flex>
         <Flex wrap="wrap" align="center" gap="2">
           <FilterMenus
             tickets={inProject}
@@ -186,11 +233,21 @@ export function BoardPage() {
         />
         <TicketDrawer ticket={ticket} board={data} onClose={closeTicket} />
       </Flex>
+      {managing && (
+        <ProjectsDialog
+          board={data}
+          onClose={() => setManaging(false)}
+          onCreated={(slug) => {
+            setManaging(false);
+            navigate(`/todo/${slug}`);
+          }}
+        />
+      )}
       {creating && (
         <NewTicketDialog
           board={data}
           status={creating}
-          projectSlug={projectSlug}
+          projectSlug={viewSlug}
           onClose={() => setCreating(null)}
           onCreated={(id) => {
             setCreating(null);

@@ -6,8 +6,18 @@ export const members: Member[] = [
 ];
 
 export const projects: Project[] = [
-  { slug: "notia", name: "Notia", color: "oklch(0.55 0.12 202)" },
-  { slug: "back-office", name: "Back-office", color: "oklch(0.62 0.13 75)" },
+  {
+    slug: "notia",
+    name: "Notia",
+    color: "oklch(0.55 0.12 202)",
+    archivedAt: null,
+  },
+  {
+    slug: "back-office",
+    name: "Back-office",
+    color: "oklch(0.62 0.13 75)",
+    archivedAt: null,
+  },
 ];
 
 export function makeTicket(

@@ -14,6 +14,8 @@ import { fetchBoard } from "./api";
 
 vi.mock("./api", () => ({
   fetchBoard: vi.fn(),
+  createProject: vi.fn(),
+  updateProject: vi.fn(),
   fetchEvents: vi.fn().mockResolvedValue([]),
   fetchImages: vi.fn().mockResolvedValue([]),
   updateTicket: vi.fn(),
@@ -135,6 +137,41 @@ it("/todo/inconnu shows « Projet inconnu » and a « Voir tous les projets » l
   expect(
     screen.getByRole("link", { name: "Voir tous les projets" }),
   ).toHaveAttribute("href", "/todo");
+});
+
+const withNotiaArchived = () =>
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects: projects.map((p) =>
+      p.slug === "notia" ? { ...p, archivedAt: "2026-11-19T10:00:00Z" } : p,
+    ),
+    members,
+    tickets,
+  });
+
+const backOfficeCount = tickets.filter(
+  (t) => t.projectSlug === "back-office",
+).length;
+
+it("an archived project leaves the tabs and « Tous les projets »", async () => {
+  withNotiaArchived();
+  renderAt("/todo");
+  const all = await chip(/Tous les projets/);
+  expect(all).toHaveAccessibleName(`Tous les projets ${backOfficeCount}`);
+  expect(
+    within(
+      screen.getByRole("radiogroup", { name: "Filtrer par projet" }),
+    ).queryByRole("radio", { name: /^Notia/ }),
+  ).not.toBeInTheDocument();
+  expect(titles()).toHaveLength(backOfficeCount);
+});
+
+it("/todo/<archived> goes back to /todo without « Projet inconnu »", async () => {
+  withNotiaArchived();
+  renderAt("/todo/notia");
+  await vi.waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/todo$/),
+  );
+  expect(screen.queryByText("Projet inconnu")).not.toBeInTheDocument();
 });
 
 it("the toolbar shows no ticket count and reads « Tri : Manuel »", async () => {

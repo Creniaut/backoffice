@@ -1,6 +1,6 @@
 export interface FakeResult {
   data: unknown;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
 }
 
 interface FakeQuery extends PromiseLike<FakeResult> {
