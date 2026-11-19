@@ -1,5 +1,7 @@
 import type { Project, Ticket } from "./types";
 
+export const PROJECT_EXISTS = "Ce projet existe déjà";
+
 export const PROJECT_COLORS = [
   "oklch(0.55 0.12 202)",
   "oklch(0.62 0.13 75)",
