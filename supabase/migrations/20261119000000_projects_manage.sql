@@ -1,4 +1,6 @@
-alter table public.projects add column archived_at timestamptz;
+alter table public.projects
+  add column archived_at timestamptz,
+  add constraint projects_name_not_blank check (char_length(btrim(name)) > 0);
 
 grant insert (slug, name, color), update (name, color, archived_at)
   on public.projects to authenticated;
@@ -16,6 +18,9 @@ security definer
 set search_path = ''
 as $$
 begin
+  if tg_op = 'UPDATE' and new.project_slug is not distinct from old.project_slug then
+    return new;
+  end if;
   if exists (
     select 1 from public.projects
     where slug = new.project_slug and archived_at is not null

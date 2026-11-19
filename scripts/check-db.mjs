@@ -238,7 +238,23 @@ async function run() {
     "P0001",
   );
   ok("archived project refuses tickets from claude");
+  const kept = await client.query(
+    "update tickets set project_slug = project_slug, status = 'done' where project_slug = 'check-db-projet'",
+  );
+  assert(
+    kept.rowCount === 1,
+    "un ticket d'un projet archivé ne se met plus à jour",
+  );
+  ok("tickets of an archived project stay editable");
   await as(memberEmail);
+
+  await mustFail(
+    "blank project name",
+    "insert into projects (slug, name, color) values ('check-db-vide', '   ', 'x')",
+    [],
+    "23514",
+  );
+  ok("project names are not blank");
 
   await mustFail(
     "member writes events",
