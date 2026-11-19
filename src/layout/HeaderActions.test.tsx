@@ -19,3 +19,11 @@ it("shows the members' initials and signs out", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
   expect(supabase.auth.signOut).toHaveBeenCalled();
 });
+
+it("offers the theme menu", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({ projects, members, tickets });
+  renderWithProviders(<HeaderActions />);
+  expect(
+    await screen.findByRole("button", { name: /^Thème :/ }),
+  ).toBeInTheDocument();
+});
