@@ -15,8 +15,8 @@ Lire aussi `README.md` et la conception `docs/superpowers/specs/2026-11-13-table
 
 Ce repo range ses tickets dans deux projets :
 
-- `todo` : le tableau lui-même (todo.notias.fr) — interface, schéma, déploiement ;
-- `back-office` : le reste du back-office (autres modules à venir, sujets communs).
+- `todo` : l'interface du tableau (todo.notias.fr) — écrans et fonctions que voient les membres ;
+- `back-office` : tout le reste — déploiement, CI, base et sécurité, autres modules à venir.
 
 Dans les requêtes ci-dessous, remplacer `<slug>` par l'un des deux.
 
