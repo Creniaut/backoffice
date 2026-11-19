@@ -154,6 +154,17 @@ async function run() {
     intruderDelete.rowCount === 0,
     "un compte hors liste supprime un ticket",
   );
+  await mustFail(
+    "intruder insert project",
+    "insert into projects (slug, name, color) values ('intrus', 'I', 'x')",
+  );
+  const intruderRename = await client.query(
+    "update projects set name = 'intrus' where slug = 'notia'",
+  );
+  assert(
+    intruderRename.rowCount === 0,
+    "un compte hors liste renomme un projet",
+  );
   ok("intruder cannot write");
 
   await as(memberEmail);
@@ -177,6 +188,57 @@ async function run() {
     `événement de création : ${JSON.stringify(createdEvent)}`,
   );
   ok("member writes");
+
+  await client.query(
+    "insert into projects (slug, name, color) values ('check-db-projet', 'Check', 'oklch(0.55 0.14 145)')",
+  );
+  const renamed = await client.query(
+    "update projects set name = 'Check 2', color = 'oklch(0.55 0.15 300)' where slug = 'check-db-projet'",
+  );
+  assert(renamed.rowCount === 1, "un membre ne renomme pas un projet");
+  await mustFail(
+    "member changes slug",
+    "update projects set slug = 'autre' where slug = 'check-db-projet'",
+  );
+  await mustFail(
+    "member deletes project",
+    "delete from projects where slug = 'check-db-projet'",
+  );
+  await client.query(
+    "update projects set archived_at = now() where slug = 'check-db-projet'",
+  );
+  await mustFail(
+    "ticket in archived project",
+    "insert into tickets (project_slug, title) values ('check-db-projet', 'x')",
+    [],
+    "P0001",
+  );
+  await mustFail(
+    "ticket moved to archived project",
+    "update tickets set project_slug = 'check-db-projet' where id = $1",
+    [created.id],
+    "P0001",
+  );
+  await client.query(
+    "update projects set archived_at = null where slug = 'check-db-projet'",
+  );
+  await client.query(
+    "insert into tickets (project_slug, title) values ('check-db-projet', 'restauré')",
+  );
+  ok("member manages projects");
+
+  await asClaude();
+  await client.query(
+    "update projects set archived_at = now() where slug = 'check-db-projet'",
+  );
+  await mustFail(
+    "claude ticket in archived project",
+    "insert into tickets (project_slug, title) values ('check-db-projet', 'x')",
+    [],
+    "P0001",
+  );
+  ok("archived project refuses tickets from claude");
+  await as(memberEmail);
 
   await mustFail(
     "member writes events",
