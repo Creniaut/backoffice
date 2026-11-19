@@ -313,3 +313,11 @@ it("Escape while editing the title cancels it and keeps the drawer open", async 
   expect(screen.getByTestId("location")).toHaveTextContent("?ticket=3");
   expect(updateTicket).not.toHaveBeenCalled();
 });
+
+it("the drawer shows the ticket number next to the project", async () => {
+  renderAt(`/todo?ticket=${CLAUDE_TICKET_ID}`);
+  const drawer = await screen.findByRole("dialog", {
+    name: "Repères : caler les scores sur une semaine de vrais joueurs",
+  });
+  expect(within(drawer).getByText(`#${CLAUDE_TICKET_ID}`)).toBeInTheDocument();
+});

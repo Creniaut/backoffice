@@ -102,10 +102,28 @@ export function ProjectTag({ project }: { project: Project | undefined }) {
   );
 }
 
+export function TicketNumber({ id }: { id: number }) {
+  return (
+    <Text
+      as="span"
+      flex="none"
+      fontSize="12px"
+      color="app.muted"
+      fontVariantNumeric="tabular-nums"
+      title={`Ticket n° ${id}`}
+    >
+      {`#${id}`}
+    </Text>
+  );
+}
+
 export function CardContent({ ticket, project, assignee }: CardProps) {
   return (
     <>
-      <ProjectTag project={project} />
+      <Flex align="center" justify="space-between" gap="2">
+        <ProjectTag project={project} />
+        <TicketNumber id={ticket.id} />
+      </Flex>
       <Heading
         as="h3"
         fontFamily="body"
