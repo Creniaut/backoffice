@@ -10,10 +10,11 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuPlus } from "react-icons/lu";
+import { LuPlus, LuSettings2 } from "react-icons/lu";
 import {
   Navigate,
   Link as RouterLink,
+  useNavigate,
   useParams,
   useSearchParams,
 } from "react-router";
@@ -30,6 +31,7 @@ import {
 import { FilterMenus } from "./FilterMenus";
 import { ticketsForProject } from "./format";
 import { ProjectFilter } from "./ProjectFilter";
+import { ProjectsDialog } from "./ProjectsDialog";
 import { activeProjects, activeTickets, archivedProjects } from "./projects";
 import { useBoard } from "./queries";
 import { readSortMode, writeSortMode, type SortMode } from "./sort";
@@ -44,7 +46,9 @@ export function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const board = useBoard();
   useBlockFileNavigation();
+  const navigate = useNavigate();
   const [creating, setCreating] = useState<Status | null>(null);
+  const [managing, setManaging] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
   const [filters, setFilters] = useState<BoardFilters>(readFilters);
   const projectSlug = project ?? null;
@@ -141,11 +145,28 @@ export function BoardPage() {
         <Heading as="h1" srOnly>
           Tableau
         </Heading>
-        <ProjectFilter
-          projects={shownProjects}
-          tickets={shownTickets}
-          current={projectSlug}
-        />
+        <Flex align="center" gap="1" minW="0" maxW="full">
+          <ProjectFilter
+            projects={shownProjects}
+            tickets={shownTickets}
+            current={projectSlug}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            flexShrink="0"
+            aria-label="Gérer les projets"
+            color="app.muted"
+            fontWeight="400"
+            _hover={{ color: "app.ink", bg: "app.lane" }}
+            onClick={() => setManaging(true)}
+          >
+            <LuSettings2 aria-hidden="true" />
+            <Box as="span" hideBelow="md">
+              Projets
+            </Box>
+          </Button>
+        </Flex>
         <Flex wrap="wrap" align="center" gap="2">
           <FilterMenus
             tickets={inProject}
@@ -201,6 +222,16 @@ export function BoardPage() {
         />
         <TicketDrawer ticket={ticket} board={data} onClose={closeTicket} />
       </Flex>
+      {managing && (
+        <ProjectsDialog
+          board={data}
+          onClose={() => setManaging(false)}
+          onCreated={(slug) => {
+            setManaging(false);
+            navigate(`/todo/${slug}`);
+          }}
+        />
+      )}
       {creating && (
         <NewTicketDialog
           board={data}
