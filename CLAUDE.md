@@ -13,7 +13,12 @@ Lire aussi `README.md` et la conception `docs/superpowers/specs/2026-11-13-table
 
 ## Tableau du back-office (connecteur `supabase-backoffice`)
 
-Slug de ce projet : `back-office`.
+Ce repo range ses tickets dans deux projets :
+
+- `todo` : le tableau lui-même (todo.notias.fr) — interface, schéma, déploiement ;
+- `back-office` : le reste du back-office (autres modules à venir, sujets communs).
+
+Dans les requêtes ci-dessous, remplacer `<slug>` par l'un des deux.
 
 Ce repo fait évoluer le code et le schéma du tableau ; les autres projets y lisent et écrivent leurs tickets par le connecteur
 (section modèle dans `README.md`, « Brancher un projet sur le tableau »).
@@ -40,15 +45,15 @@ Ce repo fait évoluer le code et le schéma du tableau ; les autres projets y li
 ```sql
 -- Tickets ouverts du projet
 select id, title, status, priority, difficulty, assignee_email from tickets
-where project_slug = 'back-office' and status <> 'done' order by status, priority nulls last, position;
+where project_slug = '<slug>' and status <> 'done' order by status, priority nulls last, position;
 
 -- Un ticket parle-t-il déjà du sujet ?
 select id, title, status from tickets
-where project_slug = 'back-office' and (title ilike '%<mot>%' or description ilike '%<mot>%');
+where project_slug = '<slug>' and (title ilike '%<mot>%' or description ilike '%<mot>%');
 
 -- Créer en haut de sa colonne ('idea' ou 'todo', le même aux deux endroits)
 insert into tickets (project_slug, title, description, status, priority, difficulty, position)
-values ('back-office', '<titre>', '<description>', 'idea', '<high|medium|low>', '<easy|medium|hard>',
+values ('<slug>', '<titre>', '<description>', 'idea', '<high|medium|low>', '<easy|medium|hard>',
   (select coalesce(min(position), 0) - 1 from tickets where status = 'idea'));
 
 -- Compléter un ticket existant
