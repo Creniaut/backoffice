@@ -12,7 +12,6 @@ import {
 import { useEffect, useState } from "react";
 import { LuPlus, LuSettings2 } from "react-icons/lu";
 import {
-  Navigate,
   Link as RouterLink,
   useNavigate,
   useParams,
@@ -68,6 +67,23 @@ export function BoardPage() {
       { replace: true },
     );
 
+  const archivedCurrent =
+    projectSlug !== null &&
+    (board.data
+      ? archivedProjects(board.data.projects).some(
+          (p) => p.slug === projectSlug,
+        )
+      : false);
+  useEffect(() => {
+    if (!archivedCurrent) return;
+    navigate(
+      { pathname: "/todo", search: searchParams.toString() },
+      {
+        replace: true,
+      },
+    );
+  });
+
   const missingTicket = ticketId !== null && board.isSuccess && ticket === null;
   useEffect(() => {
     if (!missingTicket) return;
@@ -100,21 +116,16 @@ export function BoardPage() {
   const shownProjects = activeProjects(data.projects);
   const shownTickets = activeTickets(data.tickets, data.projects);
 
-  if (
-    projectSlug &&
-    archivedProjects(data.projects).some((p) => p.slug === projectSlug)
-  ) {
-    return <Navigate to="/todo" replace />;
-  }
+  const viewSlug = archivedCurrent ? null : projectSlug;
 
-  if (projectSlug && !data.projects.some((p) => p.slug === projectSlug)) {
+  if (viewSlug && !data.projects.some((p) => p.slug === viewSlug)) {
     return (
       <Center flex="1">
         <Stack align="center" gap="2">
           <Text fontFamily="heading" fontWeight="700" fontSize="xl">
             Projet inconnu
           </Text>
-          <Text color="app.muted">{`Aucun projet ne s'appelle « ${projectSlug} ».`}</Text>
+          <Text color="app.muted">{`Aucun projet ne s'appelle « ${viewSlug} ».`}</Text>
           <Link asChild color="app.accent" fontWeight="500">
             <RouterLink to="/todo">Voir tous les projets</RouterLink>
           </Link>
@@ -123,7 +134,7 @@ export function BoardPage() {
     );
   }
 
-  const inProject = ticketsForProject(shownTickets, projectSlug);
+  const inProject = ticketsForProject(shownTickets, viewSlug);
   const visible = inProject.filter((t) => matchesFilters(t, filters));
   const filtered = hasFilters(filters);
   const changeFilters = (next: BoardFilters) => {
@@ -149,7 +160,7 @@ export function BoardPage() {
           <ProjectFilter
             projects={shownProjects}
             tickets={shownTickets}
-            current={projectSlug}
+            current={viewSlug}
           />
           <Button
             size="sm"
@@ -236,7 +247,7 @@ export function BoardPage() {
         <NewTicketDialog
           board={data}
           status={creating}
-          projectSlug={projectSlug}
+          projectSlug={viewSlug}
           onClose={() => setCreating(null)}
           onCreated={(id) => {
             setCreating(null);

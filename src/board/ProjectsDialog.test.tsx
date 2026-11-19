@@ -215,3 +215,23 @@ it("no archived project, no « Archivés » section", async () => {
     within(dialog).queryByRole("button", { name: /^Archivés/ }),
   ).not.toBeInTheDocument();
 });
+
+it("archiving the project on screen keeps the window as it was", async () => {
+  vi.mocked(updateProject).mockImplementation(async (slug, patch) => {
+    current = current.map((p) =>
+      p.slug === slug ? { ...p, archivedAt: patch.archivedAt ?? null } : p,
+    );
+  });
+  const dialog = await openDialog("/todo/notia");
+  await userEvent.type(within(dialog).getByLabelText("Nom"), "Brouillon");
+  await userEvent.click(
+    within(row(dialog, "Projets actifs", "Notia")).getByRole("button", {
+      name: "Archiver",
+    }),
+  );
+  await vi.waitFor(() =>
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/todo$/),
+  );
+  expect(dialog).toBeInTheDocument();
+  expect(within(dialog).getByLabelText("Nom")).toHaveValue("Brouillon");
+});
