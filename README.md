@@ -29,7 +29,7 @@ Vite + React 19 + TypeScript strict, Chakra UI v3, TanStack Query, React Router,
 
 - Migrations dans `supabase/migrations/`, appliquées par la CI à chaque push sur `main` (voir « Mise en ligne ») ; à la main si besoin : `npx supabase db push --db-url "$DATABASE_URL"`. Pas de `supabase login` : son jeton couvre tout le compte.
 - Accès réservé aux e-mails de la table `members`. Ajouter un membre : `insert into members (email, name, initials) values (…);`.
-- Ajouter un projet : `insert into projects (slug, name, color) values ('mon-projet', 'Mon projet', 'oklch(0.6 0.12 300)');`. Il apparaît dans le filtre et à l'adresse `/todo/mon-projet`.
+- Projets : bouton **Projets** au bout des onglets, pour créer (nom, couleur), renommer, archiver et restaurer. Le slug est tiré du nom à la création puis figé : il sert dans l'adresse `/todo/<slug>` et dans le `CLAUDE.md` des repos branchés. Pas de suppression. Un projet archivé (`projects.archived_at`) disparaît des onglets, de « Tous les projets » et de « Nouveau ticket » ; la base refuse d'y créer ou d'y déplacer un ticket, connecteur compris. En secours : `insert into projects (slug, name, color) values ('mon-projet', 'Mon projet', 'oklch(0.6 0.12 300)');`.
 - `tickets.priority` (`high`, `medium`, `low`) et `tickets.difficulty` (`easy`, `medium`, `hard`) sont facultatives. Le tri du tableau (« Manuel », « Priorité » ou « Difficulté »), mémorisé dans le navigateur, range les colonnes par priorité puis difficulté, ou par difficulté puis priorité ; « Fait » garde les plus récents en tête. Les menus « Priorité » et « Difficulté » de la barre d'outils filtrent les cartes (cases à cocher, « Sans priorité » et « Sans difficulté » compris), eux aussi mémorisés dans le navigateur ; aucune case cochée = pas de filtre.
 - L'historique (`ticket_events`) et `tickets.last_actor` sont écrits par des triggers : e-mail du membre connecté, ou `claude` pour une requête sans session (connecteur MCP).
 
@@ -51,7 +51,7 @@ Puis, dans Claude Code : `/mcp` → `supabase-backoffice` → « Authenticate »
 
 Les autres projets (Notia, et les suivants) lisent et déplacent leurs tickets par ce connecteur ; ce repo-ci ne fait évoluer que le code et le schéma.
 
-1. Ajouter le projet en base : `insert into projects (slug, name, color) values (…);` (voir « Base de données »).
+1. Créer le projet avec le bouton **Projets** du tableau (voir « Base de données »).
 2. Copier dans le `CLAUDE.md` du projet la section ci-dessous, en remplaçant `<slug>`.
 
 ````markdown
