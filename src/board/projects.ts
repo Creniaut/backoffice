@@ -1,6 +1,10 @@
 import type { Project, Ticket } from "./types";
 
 export const PROJECT_EXISTS = "Ce projet existe déjà";
+export const NAME_WITHOUT_SLUG =
+  "Le nom doit contenir une lettre ou un chiffre (a à z, 0 à 9) : il donne l'adresse du projet.";
+export const CREATED_NOT_LOADED =
+  "Projet créé, mais le tableau ne s'est pas rechargé : rechargez la page pour l'ouvrir.";
 
 export const PROJECT_COLORS = [
   "oklch(0.55 0.12 202)",
