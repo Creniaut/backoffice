@@ -15,7 +15,9 @@ import { ColorSwatches } from "./ColorSwatches";
 import {
   activeProjects,
   archivedProjects,
+  CREATED_NOT_LOADED,
   defaultColor,
+  NAME_WITHOUT_SLUG,
   PROJECT_EXISTS,
   slugify,
 } from "./projects";
@@ -64,11 +66,16 @@ function NewProjectForm({
   const [color, setColor] = useState(() => defaultColor(projects));
   const slug = slugify(name);
   const taken = slug !== "" && projects.some((p) => p.slug === slug);
+  const unnamed = slug === "" && name.trim() !== "";
   const error = taken
     ? PROJECT_EXISTS
-    : create.isError
-      ? create.error.message
-      : null;
+    : unnamed
+      ? NAME_WITHOUT_SLUG
+      : create.isError
+        ? create.error.message
+        : create.data === false
+          ? CREATED_NOT_LOADED
+          : null;
   const ready = slug !== "" && !taken;
 
   return (
@@ -78,7 +85,11 @@ function NewProjectForm({
         if (!ready) return;
         create.mutate(
           { slug, name: name.trim(), color },
-          { onSuccess: () => onCreated(slug) },
+          {
+            onSuccess: (shown) => {
+              if (shown) onCreated(slug);
+            },
+          },
         );
       }}
     >
@@ -234,7 +245,11 @@ function ProjectRow({
               variant="ghost"
               color="app.muted"
               _hover={{ color: "app.ink", bg: "app.lane" }}
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setName(project.name);
+                setColor(project.color);
+                setEditing(true);
+              }}
             >
               Modifier
             </Button>

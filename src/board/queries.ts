@@ -89,9 +89,13 @@ export function useCreateTicket() {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: Parameters<typeof createProject>[0]) =>
-      createProject(input),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: boardKey }),
+    mutationFn: async (input: Parameters<typeof createProject>[0]) => {
+      await createProject(input);
+      await queryClient.refetchQueries({ queryKey: boardKey });
+      const board = queryClient.getQueryData<Board>(boardKey);
+      return board?.projects.some((p) => p.slug === input.slug) ?? false;
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: boardKey }),
   });
 }
 

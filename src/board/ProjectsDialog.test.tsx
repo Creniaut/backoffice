@@ -1,11 +1,18 @@
-import { screen, within } from "@testing-library/react";
+import type { QueryClient } from "@tanstack/react-query";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useLocation } from "react-router";
 import { AppRoutes } from "../AppRoutes";
 import { members, projects, tickets } from "../test/fixtures";
 import { renderWithProviders } from "../test/render";
 import { createProject, fetchBoard, updateProject } from "./api";
-import { PROJECT_COLORS, PROJECT_EXISTS } from "./projects";
+import {
+  CREATED_NOT_LOADED,
+  NAME_WITHOUT_SLUG,
+  PROJECT_COLORS,
+  PROJECT_EXISTS,
+} from "./projects";
+import { boardKey } from "./queries";
 import type { Project } from "./types";
 
 vi.mock("./api", () => ({
@@ -34,14 +41,16 @@ function LocationDisplay() {
   );
 }
 
+let client: QueryClient;
+
 async function openDialog(route = "/todo") {
-  renderWithProviders(
+  ({ queryClient: client } = renderWithProviders(
     <>
       <AppRoutes />
       <LocationDisplay />
     </>,
     { route },
-  );
+  ));
   await userEvent.click(
     await screen.findByRole("button", { name: "Gérer les projets" }),
   );
@@ -116,10 +125,31 @@ it("the chosen color is sent", async () => {
   );
 });
 
-it("a name without letters or digits keeps « Créer » disabled", async () => {
+it("a name without letters or digits keeps « Créer » disabled and says why", async () => {
   const dialog = await openDialog();
   await userEvent.type(within(dialog).getByLabelText("Nom"), "!!!");
   expect(within(dialog).getByRole("button", { name: "Créer" })).toBeDisabled();
+  expect(within(dialog).getByRole("alert")).toHaveTextContent(
+    NAME_WITHOUT_SLUG,
+  );
+});
+
+it("a name with letters says nothing", async () => {
+  const dialog = await openDialog();
+  await userEvent.type(within(dialog).getByLabelText("Nom"), "Outil");
+  expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("a board that does not reload after creation keeps the window open and says so", async () => {
+  vi.mocked(createProject).mockResolvedValue();
+  const dialog = await openDialog();
+  await userEvent.type(within(dialog).getByLabelText("Nom"), "Outil travaux");
+  await userEvent.click(within(dialog).getByRole("button", { name: "Créer" }));
+  expect(
+    await within(dialog).findByText(CREATED_NOT_LOADED),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId("location")).toHaveTextContent(/^\/todo$/);
+  expect(screen.queryByText("Projet inconnu")).not.toBeInTheDocument();
 });
 
 it("a name taken by a project says « Ce projet existe déjà »", async () => {
@@ -164,6 +194,26 @@ it("« Modifier » renames and recolors a project", async () => {
     name: "Notia 2",
     color: PROJECT_COLORS[3],
   });
+});
+
+it("« Modifier » starts from the name and color at the time of the click", async () => {
+  const dialog = await openDialog();
+  current = current.map((p) =>
+    p.slug === "notia"
+      ? { ...p, name: "Notia renommé", color: PROJECT_COLORS[5] }
+      : p,
+  );
+  await act(() => client.refetchQueries({ queryKey: boardKey }));
+  const notia = await vi.waitFor(() =>
+    row(dialog, "Projets actifs", "Notia renommé"),
+  );
+  await userEvent.click(
+    within(notia).getByRole("button", { name: "Modifier" }),
+  );
+  expect(within(notia).getByLabelText("Nom du projet")).toHaveValue(
+    "Notia renommé",
+  );
+  expect(within(notia).getByRole("radio", { name: "Couleur 6" })).toBeChecked();
 });
 
 it("« Enregistrer » stays disabled with a blank name", async () => {
