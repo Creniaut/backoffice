@@ -14,9 +14,14 @@ export type DifficultyChoice = Difficulty | typeof NONE;
 export interface BoardFilters {
   priorities: PriorityChoice[];
   difficulties: DifficultyChoice[];
+  assignees: string[];
 }
 
-export const NO_FILTERS: BoardFilters = { priorities: [], difficulties: [] };
+export const NO_FILTERS: BoardFilters = {
+  priorities: [],
+  difficulties: [],
+  assignees: [],
+};
 
 const STORAGE_KEY = "board-filters";
 const PRIORITY_CHOICES: PriorityChoice[] = [
@@ -34,12 +39,27 @@ const accepts = <T extends string>(checked: T[], value: T) =>
 export function matchesFilters(ticket: Ticket, filters: BoardFilters): boolean {
   return (
     accepts(filters.priorities, ticket.priority ?? NONE) &&
-    accepts(filters.difficulties, ticket.difficulty ?? NONE)
+    accepts(filters.difficulties, ticket.difficulty ?? NONE) &&
+    accepts(filters.assignees, ticket.assigneeEmail ?? NONE)
   );
 }
 
 export function hasFilters(filters: BoardFilters): boolean {
-  return filters.priorities.length > 0 || filters.difficulties.length > 0;
+  return (
+    filters.priorities.length > 0 ||
+    filters.difficulties.length > 0 ||
+    filters.assignees.length > 0
+  );
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [
+        ...new Set(
+          value.filter((item): item is string => typeof item === "string"),
+        ),
+      ]
+    : [];
 }
 
 function known<T extends string>(value: unknown, choices: T[]): T[] {
@@ -54,10 +74,14 @@ export function readFilters(): BoardFilters {
       localStorage.getItem(STORAGE_KEY) ?? "{}",
     );
     if (typeof stored !== "object" || stored === null) return NO_FILTERS;
-    const { priorities, difficulties } = stored as Record<string, unknown>;
+    const { priorities, difficulties, assignees } = stored as Record<
+      string,
+      unknown
+    >;
     return {
       priorities: known(priorities, PRIORITY_CHOICES),
       difficulties: known(difficulties, DIFFICULTY_CHOICES),
+      assignees: strings(assignees),
     };
   } catch {
     return NO_FILTERS;

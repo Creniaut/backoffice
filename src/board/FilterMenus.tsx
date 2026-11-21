@@ -8,8 +8,9 @@ import {
   type PriorityChoice,
 } from "./filters";
 import { menuContentStyle, menuItemStyle, menuTriggerStyle } from "./menuStyle";
+import { MemberAvatar } from "./MemberAvatar";
 import { DifficultyTag, PriorityTag } from "./TicketCard";
-import { DIFFICULTIES, PRIORITIES, type Ticket } from "./types";
+import { DIFFICULTIES, PRIORITIES, type Member, type Ticket } from "./types";
 
 interface LevelOption<T extends string> {
   id: T;
@@ -131,15 +132,38 @@ function LevelMenu<T extends string>({
   );
 }
 
+function MemberOption({ member }: { member: Member | null }) {
+  return (
+    <Box as="span" display="inline-flex" alignItems="center" gap="2">
+      <MemberAvatar member={member} />
+      {member?.name ?? "Non assigné"}
+    </Box>
+  );
+}
+
 export function FilterMenus({
   tickets,
+  members,
   filters,
   onChange,
 }: {
   tickets: Ticket[];
+  members: Member[];
   filters: BoardFilters;
   onChange: (filters: BoardFilters) => void;
 }) {
+  const assigneeOptions: LevelOption<string>[] = [
+    ...members.map((member) => ({
+      id: member.email,
+      label: <MemberOption member={member} />,
+      count: tickets.filter((t) => t.assigneeEmail === member.email).length,
+    })),
+    {
+      id: NONE,
+      label: <MemberOption member={null} />,
+      count: tickets.filter((t) => t.assigneeEmail === null).length,
+    },
+  ];
   const priorityOptions: LevelOption<PriorityChoice>[] = [
     ...PRIORITIES.map((p) => ({
       id: p.id,
@@ -178,6 +202,12 @@ export function FilterMenus({
         options={difficultyOptions}
         checked={filters.difficulties}
         onChange={(difficulties) => onChange({ ...filters, difficulties })}
+      />
+      <LevelMenu
+        label="Personne"
+        options={assigneeOptions}
+        checked={filters.assignees}
+        onChange={(assignees) => onChange({ ...filters, assignees })}
       />
     </>
   );

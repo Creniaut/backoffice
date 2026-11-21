@@ -209,6 +209,7 @@ it("« Priorité » keeps the checked levels, « Sans priorité » included, and
   expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
     priorities: ["high", "none"],
     difficulties: [],
+    assignees: [],
   });
 
   unmount();
@@ -271,6 +272,7 @@ it("« Effacer les filtres » shows every ticket again", async () => {
   expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
     priorities: [],
     difficulties: [],
+    assignees: [],
   });
 });
 
@@ -294,7 +296,59 @@ it("« Tout afficher » clears its own menu and keeps the other filter", async (
   expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
     priorities: [],
     difficulties: ["none"],
+    assignees: [],
   });
+});
+
+it("« Personne » keeps the checked members, « Non assigné » included", async () => {
+  vi.mocked(fetchBoard).mockResolvedValue({
+    projects,
+    members,
+    tickets: [
+      makeTicket(71, "notia", "todo", 0, "Pour CB", {
+        assigneeEmail: "cb@example.com",
+      }),
+      makeTicket(72, "notia", "todo", 1, "Pour EC", {
+        assigneeEmail: "ec@example.com",
+      }),
+      makeTicket(73, "notia", "todo", 2, "Personne dessus"),
+    ],
+  });
+  renderAt("/todo");
+  await screen.findByRole("heading", { level: 3, name: "Pour EC" });
+  await userEvent.click(screen.getByRole("button", { name: /^Personne/ }));
+  const cb = await screen.findByRole("menuitemcheckbox", {
+    name: /CreniautB/,
+  });
+  expect(within(cb).getByText("1")).toBeInTheDocument();
+  await userEvent.click(cb);
+  await userEvent.click(
+    screen.getByRole("menuitemcheckbox", { name: /Non assigné/ }),
+  );
+  await userEvent.keyboard("{Escape}");
+  expect(laneTitles("À faire")).toEqual(["Pour CB", "Personne dessus"]);
+  expect(screen.getByRole("button", { name: /^Personne/ })).toHaveTextContent(
+    "2",
+  );
+  expect(JSON.parse(localStorage.getItem("board-filters") ?? "")).toEqual({
+    priorities: [],
+    difficulties: [],
+    assignees: ["cb@example.com", "none"],
+  });
+});
+
+it("« Gérer les projets » sits apart from the project tabs and opens the projects dialog", async () => {
+  renderAt("/todo");
+  const manage = await screen.findByRole("button", {
+    name: "Gérer les projets",
+  });
+  expect(
+    within(
+      screen.getByRole("radiogroup", { name: "Filtrer par projet" }),
+    ).queryByRole("button", { name: "Gérer les projets" }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(manage);
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
 });
 
 it("a column the filters empty says so", async () => {
