@@ -162,11 +162,20 @@ export function BoardPage() {
             tickets={shownTickets}
             current={viewSlug}
           />
+          <Box
+            aria-hidden="true"
+            flexShrink="0"
+            w="1px"
+            h="20px"
+            mx="1"
+            bg="app.line"
+          />
           <Button
             size="sm"
             variant="ghost"
             flexShrink="0"
             aria-label="Gérer les projets"
+            title="Créer, renommer ou archiver un projet"
             color="app.muted"
             fontWeight="400"
             _hover={{ color: "app.ink", bg: "app.lane" }}
@@ -174,13 +183,14 @@ export function BoardPage() {
           >
             <LuSettings2 aria-hidden="true" />
             <Box as="span" hideBelow="md">
-              Projets
+              Gérer les projets
             </Box>
           </Button>
         </Flex>
         <Flex wrap="wrap" align="center" gap="2">
           <FilterMenus
             tickets={inProject}
+            members={data.members}
             filters={filters}
             onChange={changeFilters}
           />
