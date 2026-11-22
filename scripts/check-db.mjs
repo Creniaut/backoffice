@@ -315,6 +315,101 @@ async function run() {
     "un changement de position seul crée un événement",
   );
   ok("assignment and edit are logged");
+
+  await checkUserFeedback();
+}
+
+const FEEDBACK_PROJECT = "retours-utilisateurs";
+const FEEDBACK_SECRET_NAME = "notia_feedback_secret";
+
+async function feedbackSecret() {
+  const existing = await one(
+    "select decrypted_secret as s from vault.decrypted_secrets where name = $1",
+    [FEEDBACK_SECRET_NAME],
+  );
+  if (existing) return existing.s;
+  await client.query("select vault.create_secret($1, $2)", [
+    "check-db-secret",
+    FEEDBACK_SECRET_NAME,
+  ]);
+  return "check-db-secret";
+}
+
+async function submitAsAnon(secret, title) {
+  await asAnon();
+  const row = await one(
+    "select public.submit_user_feedback($1, $2, 'check-db') as id",
+    [secret, title],
+  );
+  await asClaude();
+  return row.id;
+}
+
+async function checkUserFeedback() {
+  await asClaude();
+  const secret = await feedbackSecret();
+
+  await asAnon();
+  await mustFail(
+    "feedback with a wrong secret",
+    "select public.submit_user_feedback('faux', 'Avis · x', 'x')",
+    [],
+    "PT403",
+  );
+  await mustFail(
+    "feedback with a blank title",
+    "select public.submit_user_feedback($1, '   ', 'x')",
+    [secret],
+    "PT400",
+  );
+  await mustFail(
+    "anon inserts a ticket directly",
+    "insert into tickets (project_slug, title) values ('retours-utilisateurs', 'x')",
+  );
+  await asClaude();
+  ok("feedback refuses a wrong secret");
+
+  const old = await one(
+    "insert into tickets (project_slug, title, created_at) values ($1, 'vieil avis', now() - interval '13 months') returning id",
+    [FEEDBACK_PROJECT],
+  );
+  const id = await submitAsAnon(secret, "Avis · check-db");
+  const ticket = await one(
+    "select project_slug, status, title, priority, last_actor from tickets where id = $1",
+    [id],
+  );
+  assert(
+    ticket.project_slug === FEEDBACK_PROJECT &&
+      ticket.status === "idea" &&
+      ticket.title === "Avis · check-db" &&
+      ticket.priority === null,
+    `ticket d'avis : ${JSON.stringify(ticket)}`,
+  );
+  assert(
+    !(await one("select 1 as x from tickets where id = $1", [old.id])),
+    "un avis de plus d'un an n'est pas supprimé",
+  );
+  ok("feedback creates an idea and purges year-old ones");
+
+  const { n } = await one(
+    "select count(*)::int as n from tickets where project_slug = $1 and created_at > now() - interval '1 hour'",
+    [FEEDBACK_PROJECT],
+  );
+  for (let i = n; i < 50; i += 1) {
+    await client.query(
+      "insert into tickets (project_slug, title) values ($1, 'check-db plafond')",
+      [FEEDBACK_PROJECT],
+    );
+  }
+  await asAnon();
+  await mustFail(
+    "feedback over the hourly cap",
+    "select public.submit_user_feedback($1, 'Avis · trop', 'x')",
+    [secret],
+    "PT429",
+  );
+  await asClaude();
+  ok("feedback is capped at 50 per hour");
 }
 
 try {
