@@ -369,6 +369,15 @@ async function checkUserFeedback() {
   await asClaude();
   ok("feedback refuses a wrong secret");
 
+  await as(INTRUDER);
+  await mustFail(
+    "signed-in account calls the feedback function",
+    "select public.submit_user_feedback($1, 'Avis · x', 'x')",
+    [secret],
+  );
+  await asClaude();
+  ok("only anon can call the feedback function");
+
   const old = await one(
     "insert into tickets (project_slug, title, created_at) values ($1, 'vieil avis', now() - interval '13 months') returning id",
     [FEEDBACK_PROJECT],

@@ -34,5 +34,5 @@ begin
 end
 $$;
 
-revoke all on function public.submit_user_feedback(text, text, text) from public;
+revoke all on function public.submit_user_feedback(text, text, text) from public, authenticated;
 grant execute on function public.submit_user_feedback(text, text, text) to anon;
